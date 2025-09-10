@@ -5264,27 +5264,59 @@ docker run -d \
   redis-server /usr/local/etc/redis/redis.conf
 ```
 
+#### 6.2.2.数据同步原理
 
+##### 6.2.2.1.全量同步
 
+主从第一次同步是**全量同步**：
 
+从节点发起数据同步请求，主节点判断是否是第一次同步，如果是，则返回主节点（master）的数据版本信息，随后执行`bgsave`命令生成`RDB`文件，在此期间如果有新的Redis操作向主节点发起，则主节点会将所有命令保存到`repl_baklog`，在从节点加载完`RDB`文件后，主节点再发送`repl_baklog`中的命令，后续阶段主节点一旦有更新，就会发送该命令来同步从节点
 
+<img src="./images/Java/Snipaste_2025-09-10_15-58-54.png" style="zoom: 80%;" />
 
+___
 
+**master如何判断slave是不是第一次来同步数据？**
 
+这里会用到以下两个重要的概念
 
+* `Replication Id`：简称`replid`，是数据集的标记，**id一致则说明是同一数据集**。每一个master都有唯一的`replid`，slave则会继承master节点的`replid`
+* `offset`：偏移量，随着记录在`repl_backlog`中的**数据增多而逐渐增大**。slave完成同步时也会记录当前同步的offset。如果slave的offset小于master的offset，说明slave数据落后于master，需要更新。
 
+因此slave做数据同步，必须向master声明自己的`replication id`和`offset`，master才可以判断到底需要同步哪些数据。
 
+> **master如何判断slave节点是不是第一次来做数据同步？**根据replication id是否一致，如果不一致则slave是第一次来做同步。
 
+因此，slave在请求数据同步时需要同时携带`replid`和`offset`，如果是第一次请求数据同步，则master还要在版本信息阶段返回从节点`replid`和`offset`
 
+<img src="./images/Java/Snipaste_2025-09-10_17-03-27.png" style="zoom:80%;" />
 
+___
 
+**简述全量同步的流程**
 
+- slave节点**请求增量同步**
+- master节点判断`replid`，发现不一致，**拒绝增量同步**
+- master将完整内存数据生成`RDB`，发送`RDB`到slave
+- slave**清空本地数据**，加载master的`RDB`
+- master将`RDB`期间的命令记录在`repl_backlog`，并持续将log中的命令发送给slave
+- slave执行接收到的命令，保持与master之间的同步
 
+##### 6.2.2.2.增量同步
 
+主从第一次同步时全量同步，但如果slave重启后（正常重启或宕机重启）同步，则执行**增量同步**。
 
+<img src="./images/Java/Snipaste_2025-09-10_20-22-38.png" style="zoom:80%;" />
 
+主节点会维护一个 `repl_backlog` **环形缓冲区**，并不断更新其中的命令日志和偏移量信息。从节点在断连并重新连接主节点时，会发送自己的当前偏移量给主节点。主节点会根据从节点提供的偏移量，在 `repl_backlog` 中查找对应的日志位置，将之后的新命令发送给从节点，实现数据同步。
 
+<img src="./images/Java/image-20241224160654992-2024-12-2416_06_56.png"  />
 
+如果slave出现网络阻塞，导致master的offset远远超过了slave的offset，此时master继续写入新数据，其offset就会覆盖旧的数据，直到将slave现在的offset也覆盖。棕色框中的红色部分，就是尚未同步，但是却已经被覆盖的数据。此时如果slave恢复，需要同步，却发现自己的offset都没有了，无法完成增量同步了，只能做**全量同步**。
+
+<img src="./images/java/image-20241224160909032-2024-12-2416_09_10.png" style="zoom:80%;" />
+
+> ***总结：`repl_baklog`大小有上限，写满后会覆盖最早的数据。如果slave断开连接时间过久，导致尚未备份的数据被覆盖，则无法基于log做增量同步，只会再次全量同步***
 
 
 
