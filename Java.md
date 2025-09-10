@@ -4985,13 +4985,13 @@ Redis有两种持久化方案：
 
 ___
 
-**执行时机**
+##### 6.1.1.1.执行时机
 
 * **执行save命令时**
 
   ```shell
   [root@localhost ~]#redis-cli
-  127.0.0.1：6379> save #由Redis主进程来执行RDB，会阻塞所有命令ok
+  127.0.0.1：6379> save # 由Redis主进程来执行RDB，会阻塞所有命令ok
   127.0.0.1：6379>
   ```
 
@@ -5000,13 +5000,13 @@ ___
 * **执行bgsave命令时**
 
   ```shell
-  127.0.0.1：6379> bgsave #开启子进程执行RDB，避免主进程受到影响
+  127.0.0.1：6379> bgsave # 开启子进程执行RDB，避免主进程受到影响
   Background saving started
   ```
 
   这个命令执行后会**开启独立进程完成`RDB`**，主进程可以持续处理用户请求，不受影响。
 
-* **停机时（关闭Redis服务）**
+* **停机时（关闭Redis服务）**，默认情况下
 
   Redis停机时会执行一次save命令，实现`RDB`持久化。
 
@@ -5015,13 +5015,14 @@ ___
   Redis内部有触发`RDB`的机制，可以在`redis.conf`文件中找到，格式如下
 
   ```shell
-  save 900 1 # 900秒内，如果至少有1个key被修改，则执行bgsave ， 如果是 save "" 则表示禁用RDB
+  save "" # 禁用RDB
+  save 900 1 # 900秒内，如果至少有1个key被修改，则执行bgsave
   save 300 10 # 同上
   save 60 10000 # 同上
   ```
-
+  
   `RDB`的其它配置也可以在`redis.conf`文件中设置
-
+  
   ```shell
   # 是否压缩 建议不开启 压缩也会消耗CPU
   rdbcompression yes
@@ -5035,33 +5036,233 @@ ___
 
 > ***RDB默认是开启的（服务器停机时触发），我们可以额外配置触发条件***
 
+___
 
+##### 6.1.1.2.bgsave命令
 
+Linux系统中，所有的进程都没有办法直接操作物理内存，而是由操作系统给每个进程分配一个虚拟内存，主进程只能操作虚拟内存；操作系统会维护虚拟内存与物理内存的映射关系表，称作**页表**。主进程通过读写页表实现对物理内存的读写
 
+`bgsave`开始时会fork主进程得到子进程，子进程**共享**主进程的内存数据。完成fork后读取内存数据并写入`RDB`文件替换旧`RDB`文件。
 
+> fork的作用是复制一个与当前进程（父进程）完全相同的子进程。新进程（子进程）的所有数据（变量、环境变量、程序计数器等）的数值都和原进程（父进程）一致，但子进程是一个全新的进程。
+>
+> ***在fork过程中父进程是**阻塞**的，完成后才可继续处理请求***
 
+<img src="./images/Java/Snipaste_2025-09-09_16-30-40.png" style="zoom: 67%;" />
 
+但是子进程在写RDB文件的过程中，主进程接会收用户的请求来修改内存中的数据，此时如果主进程在修改数据，而子进程又同时在读，就会发生冲突可能会出现一些脏数据。为了避免以上情况的发生，fork采用的是copy-on-write技术：
 
+* 当主进程执行读操作时，访问共享内存（read-only）；
+* 当主进程写操作时，则会拷贝一份数据，执行写操作，后续主进程再进行读操作时，就会访问拷贝的数据（数据B副本）。
 
+___
 
+##### 6.1.1.3.总结
 
+**RDB方式bgsave的基本流程？**
 
+* fork主进程得到一个子进程，共享内存空间
+* 子进程读取内存数据并写入新的`RDB`文件
+* 用新`RDB`文件替换旧的`RDB`文件
 
+**RDB会在什么时候执行，save 60 1000代表什么含义？**
 
+* 默认是服务停止时
+* 代表60秒内至少执行1000次修改则触发`RDB`
 
+**RDB的缺点？**
 
+- `RDB`执行间隔时间长，两次`RDB`之间写入数据有丢失的风险（服务器发生宕机）。
+- fork子进程、压缩、写出`RDB`文件都比较耗时。
 
+#### 6.1.2.AOF持久化
 
+AOF全称为`Append Only File`（追加文件）。Redis处理的**每一个写命令**都会记录在AOF文件，可以看做是命令日志文件。当Redis服务器发生宕机时，执行一次AOF文件即可恢复。
 
+<img src="./images/Java/2024-12-2411_24_48.png" style="zoom: 67%;" />
 
+```shell
+shu@shu-HP-Z4-G4-Workstation:cat appendonly.aof 
+*2 # 表示1个数组，后面有2个元素
+$6 # 后面跟着一个字符串，长度为6字节
+SELECT
+$1
+0
+*3
+$3
+set
+$4
+name
+$3
+zyy
+```
 
+> ***SELECT 0表示切换到数据库0（Redis默认有16个数据库，编号从0到15）***
 
+___
 
+##### 6.1.2.1.AOF相关配置
 
+**AOF默认是关闭的**，需要修改redis.conf配置文件来开启AOF
 
+```shell
+# 是否开启AOF功能，默认是no
+appendonly yes
 
+# AOF文件的名称
+appendfilename "appendonly.aof"
+```
 
+AOF的命令记录的频率也可以通过redis.conf文件来配置
 
+```shell
+# 表示每执行一次写命令，立即记录到AOF文件
+appendfsync always
+
+# 写命令执行完先放入AOF缓冲区，然后表示每隔1秒将缓冲区数据写到AOF文件，是 默认方案
+appendfsync everysec
+
+# 写命令执行完先放入AOF缓冲区，由操作系统决定何时将缓冲区内容写回磁盘
+appendfsync no
+```
+
+三种命令记录的频率比较
+
+![](./images/Java/image-20241224112620896-2024-12-2411_26_22.png)
+
+___
+
+##### 6.1.2.2.AOF文件重写
+
+因为是记录命令，AOF文件会比RDB文件大得多。而且AOF会记录对同一key的多次写操作，但只是最后一次写操作才有意义。通过**`bgrewriteaof`**命令，可以让AOF文件**执行重写功能**，**用最少的命令达到相同效果**。
+
+![](./images/Java/Snipaste_2025-09-09_19-04-01.png)
+
+如图，AOF原本有三个命令，但是`set num 123 `和` set num 666`都是对`num`的操作，第二次会覆盖第一次的值，因此第一个命令记录下来没有意义。所以重写命令后，AOF文件内容就是：`mset name jack num 666`
+
+> ***`bgrewriteaof`命令也是异步的，会开启新的进程完成***
+
+Redis也会在触发阈值时自动去重写AOF文件。阈值也可以在redis.conf中配置
+
+```shell
+# AOF文件比上次文件 增长超过多少百分比则触发重写
+auto-aof-rewrite-percentage 100
+
+# AOF文件体积最小多大以上才触发重写
+auto-aof-rewrite-min-size 64mb
+```
+
+#### 6.1.3.RDB和AOF对比
+
+RDB和AOF各有自己的优缺点，如果对数据安全性要求较高，**在实际开发中往往会结合两者来使用。**
+
+![](./images/Java/Snipaste_2025-09-09_19-13-06.png)
+
+### 6.2.Redis主从
+
+单节点Redis的并发能力是有上限的，要进一步提高Redis的并发能力，就需要**搭建主从集群，实现读写分离**。
+
+<img src="./images/Java/image-20241224151621838-2024-12-2415_16_43.png" style="zoom: 67%;" />
+
+#### 6.2.1.使用Docker创建主从
+
+为了使从节点配置文件中`slaveof redis-6.2.6 6379`项直接使用主节点名称，**即容器之间可以直接通过容器名进行通信**，单独创建网络容器来连接主从结构
+
+```shell
+# 创建名为redis-network的自定义网络
+docker network create redis-network
+
+# 查看网络详情
+docker network inspect redis-network
+```
+
+将现有的主从节点连接到网络
+
+```shell
+# 将您现有的redis-6.2.6容器连接到自定义网络
+docker network connect redis-network redis-6.2.6
+
+# 验证容器网络连接
+docker inspect redis-6.2.6 | grep -A 10 Networks
+```
+
+> ***三个容器之间还没有任何关系，要配置主从可以在配置文件中使用`replicaof`或者`slaveof`（Redis5.0以前）命令***
+
+___
+
+**创建主节点容器**
+
+创建主节点的容器映射文件（数据文件、配置文件）
+
+```shell
+sudo mkdir -p /application/redis/{data,conf} # 在redis目录下创建data和conf两个目录
+sudo chmod -R 775 /application/redis
+```
+
+编写配置文件`redis.conf`
+
+```shell
+# 开启密码验证
+requirepass 449554
+ 
+# 允许redis外地连接，需要注释掉绑定的IP
+bind 0.0.0.0
+
+#关键：允许从节点用此密码连接主节点
+masterauth 449554
+ 
+# 关闭保护模式
+protected-mode no
+ 
+# 注释掉daemonize yes，或者配置成 daemonize no。因为该配置和 docker run中的 -d 参数冲突，会导致容器一直启动失败
+daemonize no
+```
+
+> ***在已有redis容器中修改配置文件，作为主节点；主节点的创建步骤在Docker2.2.4小节中***
+
+___
+
+**创建两个从节点容器**
+
+同以上步骤创建容器映射文件，分别名为
+
+```shell
+/application/redis-slave1-6380/{data,conf}
+/application/redis-slave2-6381/{data,conf}
+```
+
+两个从节点配置文件`redis.conf`
+
+```shell
+# 允许所有连接
+bind 0.0.0.0
+# 容器内部端口仍是6379
+port 6379
+# 核心配置：指定主节点的主机名和端口
+slaveof redis-6.2.6 6379
+# 连接主节点所需的密码
+masterauth 449554
+# 从节点自己的密码（可选，但建议设置）
+requirepass 449554
+# 必须为 no，在 Docker 中以前台方式运行
+daemonize no
+# 关闭保护模式，允许远程连接
+protected-mode no
+# 从节点只读（默认就是yes，显式写明更清晰）
+replica-read-only yes
+```
+
+两个节点分别执行下列命令（修改相关名字和挂载路径）创建并运行2个从节点
+
+```shell
+docker run -d \
+  --name redis-slave1 \
+  -p 6380:6379 \ # 将容器中6379端口映射到主机6380端口上
+  -v /application/redis-slave1-6380/data:/data \
+  -v /application/redis-slave1-6380/conf/redis.conf:/usr/local/etc/redis/redis.conf \
+  redis:6.2.6 \
+  redis-server /usr/local/etc/redis/redis.conf
+```
 
 
 
@@ -5285,7 +5486,7 @@ source /root/.bashrc
 
 ### 2.2.数据卷
 
-**数据卷**（volume）是一个虚拟目录，是**容器内目录**与**宿主机目录**之间映射的桥梁。修改容器中的静态文件资源极其不方便，于是有数据卷，作用是将容器中的文件目录映射到宿主机目录中，在宿主机目录进行资源的修改会自动同步到容器中，并且容器中资源的变化也会同步到宿主机目录中。生成的数据卷在宿主机目录：`/var/lib/docker/volumes/`下
+**数据卷**（volume）是一个虚拟目录，是**容器内目录**与**宿主机目录**之间**映射的桥梁**。修改容器中的静态文件资源极其不方便，于是有数据卷，作用是将容器中的文件目录映射到宿主机目录中，在宿主机目录进行资源的修改会自动同步到容器中，并且容器中资源的变化也会同步到宿主机目录中。生成的数据卷在宿主机目录：`/var/lib/docker/volumes/`下
 
 <img src="./images/Java/Snipaste_2024-12-03_16-43-57.png" style="zoom:80%;" />
 
@@ -5481,7 +5682,7 @@ docker build -t myImage:1.0 .
 
 ___
 
-**注意**：如，MySQL容器的IP为172.17.0.2，且是由网桥进行随机分配，当MySQL容器进行重启，再此期间则IP地址172.17.0.2可能会被占用，导致MySQL容器的IP地址发生改变。**因此，这种使用IP地址进行连接的方式不太友好。**
+**注意**：如，MySQL容器的IP为`172.17.0.2`，且是由网桥进行随机分配，当MySQL容器进行重启，再此期间则IP地址`172.17.0.2`可能会被占用，导致MySQL容器的IP地址发生改变。**因此，这种使用IP地址进行连接的方式不太友好。**
 
 ___
 
