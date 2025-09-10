@@ -5314,7 +5314,9 @@ ___
 
 如果slave出现网络阻塞，导致master的offset远远超过了slave的offset，此时master继续写入新数据，其offset就会覆盖旧的数据，直到将slave现在的offset也覆盖。棕色框中的红色部分，就是尚未同步，但是却已经被覆盖的数据。此时如果slave恢复，需要同步，却发现自己的offset都没有了，无法完成增量同步了，只能做**全量同步**。
 
-<img src="./images/java/image-20241224160909032-2024-12-2416_09_10.png" style="zoom:80%;" />
+<img src="./images/Java/image-20241224160909032.png" style="zoom:80%;" />
+
+
 
 > ***总结：`repl_baklog`大小有上限，写满后会覆盖最早的数据。如果slave断开连接时间过久，导致尚未备份的数据被覆盖，则无法基于log做增量同步，只会再次全量同步***
 
