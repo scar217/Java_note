@@ -5320,11 +5320,72 @@ ___
 
 > ***总结：`repl_baklog`大小有上限，写满后会覆盖最早的数据。如果slave断开连接时间过久，导致尚未备份的数据被覆盖，则无法基于log做增量同步，只会再次全量同步***
 
+#### 6.2.3.主从同步优化
+
+主从同步可以保证主从数据的一致性，非常重要。可以从以下几个方面来优化Redis主从集群：
+
+* 在master中配置`repl-diskless-sync yes`启用无磁盘复制，避免全量同步时的磁盘IO。
+
+  > 当设置`repl-diskless-sync yes`时，主节点会直接将内存中的数据通过网络发送给从节点，省去了生成RDB文件和写入磁盘的步骤，从而提高了复制的效率‌。
+
+* Redis单节点上的内存占用不要太大，减少`RDB`导致的过多磁盘IO
+
+  > 减少Redis单节点上的内存上限，从而减少`RDB`生成的量（大小），进而减少网络传输的量和磁盘IO的量。、
+
+* 适当提高`repl_baklog`的大小，发现slave宕机时尽快实现故障恢复，尽可能避免全量同步。
+
+* 限制一个master上的slave节点数量，如果实在是太多slave，则可以采用主-从-从链式结构，减少master压力。
+
+  <img src="./images/Java/Snipaste_2025-09-11_14-13-36.png" style="zoom: 67%;" />
+
+#### 6.2.4.总结
+
+**简述全量同步和增量同步区别？**
+
+* 全量同步：master将完整内存数据生成`RDB`，发送`RDB`到slave。后续命令则记录在`repl_baklog`，逐个发送给slave。
+* 增量同步：slave提交自己的offset到master，master获取`repl_baklog`中从offset之后的命令给slave。
+
+**什么时候执行全量同步？**
+
+* slave节点第一次连接master节点时
+* slave节点断开时间太久，`repl_baklog`中的offset已经被覆盖时
+
+**什么时候执行增量同步？**
+
+* slave节点断开又恢复，并且在`repl_baklog`中能找到offset时
+
+### 6.3.Redis哨兵
+
+> 思考：slave节点宕机恢复后可以找master节点同步数据，那master节点宕机怎么办？
+
+#### 6.3.1.哨兵的作用和原理
+
+##### 6.3.1.1.哨兵的作用
+
+Redis提供了哨兵（Sentinel）机制来实现主从集群的自动故障恢复。哨兵的结构和作用如下：
+
+* **监控**：Sentinel会不断检查你的master和slave是否按预期工作。
+* **自动故障恢复**：如果master故障，Sentinel会将一个slave提升为master。当故障实例恢复后也以新的master为主。（当slave宕机也会去恢复slave节点）
+* **通知**：Sentinel充当Redis客户端的服务发现来源，当集群发生故障转移时，会将最新消息推送给Redis的客户端。
+
+<img src="./images/Java/Snipaste_2025-09-11_16-23-59.png" style="zoom: 67%;" />
+
+##### 6.3.1.2.集群监控原理
+
+Sentinel基于心跳机制监测服务状态，每隔1秒向集群的每个实例发送ping命令：
+
+* **主观下线**：如果某sentinel节点发现某实例未在规定时间响应，则认为该实例主观下线
+* **客观下线**：若超过指定数量（quorum）的sentinel都认为该实例主观下线，则该实例客观下线。quorum值最好超过Sentinel实例数量的一半。
 
 
 
 
 
+#### 6.3.2.搭建哨兵集群
+
+
+
+#### 6.3.3.RedisTemplate的哨兵模式
 
 
 
