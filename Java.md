@@ -143,11 +143,11 @@ public class ThreadDemo {
 
 ### 2.4.三种实现方式对比
 
-![](./images/Java/Snipaste_2024-11-17_13-24-00.png)
+<img src="./images/Java/Snipaste_2024-11-17_13-24-00.png" style="zoom:80%;" />
 
 ## 3.多线程中的常用成员方法
 
-![](./images/Java/Snipaste_2024-11-17_13-26-45.png)
+<img src="./images/Java/Snipaste_2024-11-17_13-26-45.png" style="zoom:80%;" />
 
 ```java
 String getName();
@@ -239,7 +239,7 @@ public class ThreadDemo {
 
 **运行结果**（部分结果）
 
-![](./images/Java/Snipaste_2024-11-17_14-52-29.png)
+<img src="./images/Java/Snipaste_2024-11-17_14-52-29.png" style="zoom:80%;" />
 
 **分析**
 
