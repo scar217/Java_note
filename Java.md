@@ -5426,9 +5426,22 @@ ___
 
 #### 6.3.2.搭建哨兵集群
 
+创建三个用于Sentinel启动的文件夹
+
 ```bash
-# 哨兵服务的端口
+sudo mkdir /application/redis-sentinel/sentinel-1
+sudo mkdir /application/redis-sentinel/sentinel-2
+sudo mkdir /application/redis-sentinel/sentinel-3
+```
+
+编写Sentinel启动的配置文件，内容如下：（三个Sentinel的配置文件一样）
+
+```bash
+bind 0.0.0.0
+# 哨兵服务在容器中的端口号
 port 26379
+# sentinel工作目录，表示在该容器目录下写状态文件
+dir /tmp
 # 监控名为redis-6.2.6的主节点，地址为redis-6.2.6 6379 至少需要2两个哨兵同意才能判定主节点客观下线并执行故障转移
 sentinel monitor mymaster redis-6.2.6 6379 2
 # 提供主节点的密码
@@ -5445,38 +5458,71 @@ daemonize no
 logfile ""
 # 在Docker网络内关闭保护模式，允许其他容器连接
 protected-mode no
+# 是否允许Sentinel使用主机名/容器名监控master，默认no:只能使用ip地址
+sentinel resolve-hostnames yes
 ```
 
 > * 这里`mymaster`表示主节点名称，自定义，任意写
 > * `daemonize no`表示哨兵不以后台方式运行，但是在创建并启动容器命令中带有`-d`参数，表示容器在后台运行，且`Docker`守护进程会接管这个容器进程。总之，**`-d` 让容器后台化，而 `daemonize no` 保证了容器内有一个前台进程来维持容器的生命周期。**
 
-启动第一哨兵，并取名为`redis-sentinel-1`，端口号为`26379`。（后面两个哨兵名称和端口号分别为`redis-sentinel-2`、`redis-sentinel-3`；`26380`、`26381`）
+**重点**：授予该文件夹下所有内容的完整权限
+
+```bash
+sudo chmod -R 0777 /application/redis-sentinel/sentinel-1
+sudo chmod -R 0777 /application/redis-sentinel/sentinel-2
+sudo chmod -R 0777 /application/redis-sentinel/sentinel-3
+```
+
+启动第一哨兵，并取名为`redis-sentinel-1`，宿主机端口号映射为`26379`。（后面两个哨兵名称和端口号分别为`redis-sentinel-2`、`redis-sentinel-3`；`26380`、`26381`）
 
 ```bash
 docker run -d \
   --name redis-sentinel-1 \
   --network redis-network \
   -p 26379:26379 \
-  -v /application/sentinel/sentinel1.conf:/etc/redis/sentinel.conf \
+  -v /application/redis-sentinel/sentinel-1:/usr/local/etc/redis \
+  -e TZ=Asia/Shanghai \
   redis:6.2.6 \
-  redis-sentinel /etc/redis/sentinel.conf
-  
-docker run -d --name redis-sentinel-2 \
-  --network redis-network \
-  -p 26380:26379 \
-  -v /application/sentinel/sentinel2.conf:/etc/redis/sentinel.conf \
-  redis:6.2.6 \
-  redis-sentinel /etc/redis/sentinel.conf
-
-docker run -d --name redis-sentinel-3 \
-  --network redis-network \
-  -p 26381:26379 \
-  -v /application/sentinel/sentinel3.conf:/etc/redis/sentinel.conf \
-  redis:6.2.6 \
-  redis-sentinel /etc/redis/sentinel.conf
+  redis-server /usr/local/etc/redis/sentinel.conf --sentinel
 ```
 
-> 启动命令最后一行 默认情况下，`redis`镜像的启动命令是`redis-server`，用于启动Redis服务器。这里使用`redis-sentinel`命令来启动**Redis哨兵**进程。
+> * 启动命令最后一行 默认情况下，`redis`镜像的启动命令是`redis-server`，用于启动Redis服务器。这里使用`redis-server [配置文件路径] --sentinel`命令来启动**Redis哨兵**进程。
+> * **为了让Sentinel有权修改配置，必须挂载整个配置文件夹，而不是文件本身（并且文件夹内容应该是可写的）。**Sentinel在运行过程中会修改配置文件，因此需要保证宿主机挂载的文件夹是可写的，否则容器将会报错。
+
+查看哨兵容器中的日志
+
+```bash
+shu@shu-HP-Z4-G4-Workstation:/$ docker logs redis-sentinel-3
+1:X 17 Sep 2025 19:09:09.860 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+1:X 17 Sep 2025 19:09:09.860 # Redis version=6.2.6, bits=64, commit=00000000, modified=0, pid=1, just started
+1:X 17 Sep 2025 19:09:09.860 # Configuration loaded
+1:X 17 Sep 2025 19:09:09.861 * monotonic clock: POSIX clock_gettime
+1:X 17 Sep 2025 19:09:09.861 * Running mode=sentinel, port=26379.
+1:X 17 Sep 2025 19:09:09.863 # Sentinel ID is 0d4ec277cab9dcacbb9ffe71bb4c8a01a23c908b
+1:X 17 Sep 2025 19:09:09.863 # +monitor master mymaster 172.19.0.2 6379 quorum 2
+1:X 17 Sep 2025 19:09:09.863 * +slave slave 172.19.0.3:6379 172.19.0.3 6379 @ mymaster 172.19.0.2 6379
+1:X 17 Sep 2025 19:09:09.865 * +slave slave 172.19.0.4:6379 172.19.0.4 6379 @ mymaster 172.19.0.2 6379
+1:X 17 Sep 2025 19:09:10.662 * +sentinel sentinel c812ab63a7ffcdb341ca1915e83806da94f37033 172.19.0.6 26379 @ mymaster 172.19.0.2 6379
+1:X 17 Sep 2025 19:09:11.526 * +sentinel sentinel a0985a86fd6a7ab2b5811fb96645082f675a726d 172.19.0.5 26379 @ mymaster 172.19.0.2 6379
+
+```
+
+验证Sentinel是否能访问master（Redis主节点）
+
+```bash
+docker exec -it redis-sentinel-1 redis-cli -p 26379 SENTINEL masters
+docker exec -it redis-sentinel-1 redis-cli -p 26379 SENTINEL slaves mymaster
+```
+
+> * `SENTINEL masters`：查看所有被监控的主节点信息
+> * `SENTINEL slaves mymaster`：查看主节点的从节点信息
+
+试验完主从集群和哨兵集群进行关闭
+
+```bash
+docker stop redis-6.2.6 redis-slave1 redis-slave2 \
+            redis-sentinel-1 redis-sentinel-2 redis-sentinel-3
+```
 
 #### 6.3.3.RedisTemplate的哨兵模式
 
