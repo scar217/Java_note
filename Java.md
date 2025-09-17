@@ -5257,6 +5257,7 @@ replica-read-only yes
 ```shell
 docker run -d \
   --name redis-slave1 \
+  --network redis-network \
   -p 6380:6379 \ # 将容器中6379端口映射到主机6380端口上
   -v /application/redis-slave1-6380/data:/data \
   -v /application/redis-slave1-6380/conf/redis.conf:/usr/local/etc/redis/redis.conf \
@@ -5377,13 +5378,105 @@ Sentinel基于心跳机制监测服务状态，每隔1秒向集群的每个实�
 * **主观下线**：如果某sentinel节点发现某实例未在规定时间响应，则认为该实例主观下线
 * **客观下线**：若超过指定数量（quorum）的sentinel都认为该实例主观下线，则该实例客观下线。quorum值最好超过Sentinel实例数量的一半。
 
+___
 
+**选举新的master**
 
+一旦发现master故障，sentinel需要在slave中选择一个作为新的master，选择依据是这样的：
 
+* 首先会判断slave节点与master节点断开时间长短，如果超过指定值（`down-after-milliseconds * 10`）则会排除该slave节点。（**数据太旧了**）
+* 然后判断slave节点的`slave-priority`值，越小优先级越高，如果是0则永不参与选举。
+* 如果`slave-priority`一样，则判断slave节点的offset值，越大说明数据越新，优先级越高。（**主要**）
+* 最后判断slave节点的运行id大小，越小优先级越高。
+
+___
+
+**如何实现故障转移**
+
+当选中了其中一个slave为新的master后（例如slave1，图中左边的master:7002为原来的slave1），故障的转移步骤如下：
+
+* sentinel给备选的slave1节点发送`slaveof no one`命令，让该节点成为master
+
+* sentinel给所有其它slave发送`slaveof 192.168.150.101 7002`命令，让这些slave成为新master的从节点，开始从新的master上同步数据
+
+  > 这里的`192.168.150.101`是选中slave节点的`IP`，`7002`是该节点Redis的端口
+
+* 最后，sentinel会强制修改故障节点的配置文件，将其标记为slave（添加`slaveof 192.168.150.101 7002`到配置文件中），当故障节点恢复后会自动成为新的master的slave节点
+
+<img src="./images/java/image-20241224163250288-2024-12-2416_32_51.png" style="zoom:80%;" />
+
+##### 6.3.1.3.总结
+
+**Sentinel的三个作用是什么？**
+
+* **监控**：Sentinel会不断检查你的master和slave是否按预期工作。
+* **故障转移**：如果master故障，Sentinel会将一个slave提升为master。当故障实例恢复后也以新的master为主。（当slave宕机也会去恢复slave节点）
+* **通知**：Sentinel充当Redis客户端的服务发现来源，当集群发生故障转移时，会将最新消息推送给Redis的客户端。
+
+**Sentinel如何判断一个Redis实例是否健康？**
+
+* 每隔1秒发送一次ping命令，如果超过一定时间没有响应则认为是主观下线
+* 如果大多数sentinel都认为实例主观下线，则判定该服务客观下线
+
+**故障转移步骤有哪些？**
+
+* 首先选定一个slave作为新的master，执行`slaveof no one`
+* 然后让所有节点都执行`slaveof 新master`
+* 修改故障节点配置，添加`slaveof 新master`
 
 #### 6.3.2.搭建哨兵集群
 
+```bash
+# 哨兵服务的端口
+port 26379
+# 监控名为redis-6.2.6的主节点，地址为redis-6.2.6 6379 至少需要2两个哨兵同意才能判定主节点客观下线并执行故障转移
+sentinel monitor mymaster redis-6.2.6 6379 2
+# 提供主节点的密码
+sentinel auth-pass mymaster 449554
+# 哨兵认为主节点不可用的毫秒数
+sentinel down-after-milliseconds mymaster 5000
+# 执行故障转移后，同时向新的主节点发起数据同步的从节点数量为1
+sentinel parallel-syncs mymaster 1
+# slave故障恢复超时时间
+sentinel failover-timeout mymaster 10000
+# 不以守护进程方式运行
+daemonize no
+# 日志文件路径
+logfile ""
+# 在Docker网络内关闭保护模式，允许其他容器连接
+protected-mode no
+```
 
+> * 这里`mymaster`表示主节点名称，自定义，任意写
+> * `daemonize no`表示哨兵不以后台方式运行，但是在创建并启动容器命令中带有`-d`参数，表示容器在后台运行，且`Docker`守护进程会接管这个容器进程。总之，**`-d` 让容器后台化，而 `daemonize no` 保证了容器内有一个前台进程来维持容器的生命周期。**
+
+启动第一哨兵，并取名为`redis-sentinel-1`，端口号为`26379`。（后面两个哨兵名称和端口号分别为`redis-sentinel-2`、`redis-sentinel-3`；`26380`、`26381`）
+
+```bash
+docker run -d \
+  --name redis-sentinel-1 \
+  --network redis-network \
+  -p 26379:26379 \
+  -v /application/sentinel/sentinel1.conf:/etc/redis/sentinel.conf \
+  redis:6.2.6 \
+  redis-sentinel /etc/redis/sentinel.conf
+  
+docker run -d --name redis-sentinel-2 \
+  --network redis-network \
+  -p 26380:26379 \
+  -v /application/sentinel/sentinel2.conf:/etc/redis/sentinel.conf \
+  redis:6.2.6 \
+  redis-sentinel /etc/redis/sentinel.conf
+
+docker run -d --name redis-sentinel-3 \
+  --network redis-network \
+  -p 26381:26379 \
+  -v /application/sentinel/sentinel3.conf:/etc/redis/sentinel.conf \
+  redis:6.2.6 \
+  redis-sentinel /etc/redis/sentinel.conf
+```
+
+> 启动命令最后一行 默认情况下，`redis`镜像的启动命令是`redis-server`，用于启动Redis服务器。这里使用`redis-sentinel`命令来启动**Redis哨兵**进程。
 
 #### 6.3.3.RedisTemplate的哨兵模式
 
@@ -5631,7 +5724,7 @@ ___
  docker run -d --name nginx -p 80:80 -v html:/usr/share/nginx/html nginx
 ```
 
-#### 2.2.3.MySQL容器的数据挂载
+#### 2.2.3.使用Docker创建MySQL容器
 
 需求：
 
@@ -5662,7 +5755,7 @@ docker run -d  \
 mysql
 ```
 
-#### 2.2.4.使用docker创建Redis容器
+#### 2.2.4.使用Docker创建Redis容器
 
 创建目录和配置文件（用于容器内数据和配置挂载）
 
@@ -5693,6 +5786,8 @@ daemonize no
 # 开启AOF数据持久化
 appendonly yes
 ```
+
+> 在Docker容器中，`daemonize`的值必须设置为`no`，因为Docker的设计初衷是让一个前台进程作为容器的核心进程（PID 1）。如果进程在后台运行，Docker会认为这个主进程已经退出，从而导致容器立即停止。
 
 创建Redis容器并启动
 
