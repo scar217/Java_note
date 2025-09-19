@@ -5166,7 +5166,7 @@ RDB和AOF各有自己的优缺点，如果对数据安全性要求较高，**在
 
 #### 6.2.1.使用Docker创建主从
 
-为了使从节点配置文件中`slaveof redis-6.2.6 6379`项直接使用主节点名称，**即容器之间可以直接通过容器名进行通信**，单独创建网络容器来连接主从结构
+为了使从节点配置文件中`slaveof redis-master 6379`项直接使用主节点名称，**即容器之间可以直接通过容器名进行通信**，单独创建网络容器来连接主从结构
 
 ```shell
 # 创建名为redis-network的自定义网络
@@ -5180,10 +5180,10 @@ docker network inspect redis-network
 
 ```shell
 # 将您现有的redis-6.2.6容器连接到自定义网络
-docker network connect redis-network redis-6.2.6
+docker network connect redis-network redis-master
 
 # 验证容器网络连接
-docker inspect redis-6.2.6 | grep -A 10 Networks
+docker inspect redis-master | grep -A 10 Networks
 ```
 
 > ***三个容器之间还没有任何关系，要配置主从可以在配置文件中使用`replicaof`或者`slaveof`（Redis5.0以前）命令***
@@ -5214,7 +5214,7 @@ masterauth 449554
 # 关闭保护模式
 protected-mode no
  
-# 注释掉daemonize yes，或者配置成 daemonize no。因为该配置和 docker run中的 -d 参数冲突，会导致容器一直启动失败
+# 设置redis在容器前台运行。否则，会与docker run中的 -d 参数冲突，会导致容器启动失败
 daemonize no
 ```
 
@@ -5231,15 +5231,22 @@ ___
 /application/redis-slave2-6381/{data,conf}
 ```
 
+设置文件夹中的内容有可写权限
+
+```bash
+chmod -R 0777 /application/redis-slave1-6380
+chmod -R 0777 /application/redis-slave2-6381
+```
+
 两个从节点配置文件`redis.conf`
 
-```shell
+```bash
 # 允许所有连接
 bind 0.0.0.0
 # 容器内部端口仍是6379
 port 6379
-# 核心配置：指定主节点的主机名和端口
-slaveof redis-6.2.6 6379
+# 核心配置：指定主节点的主机名和端口 此处推荐写主节点的IP而不是主机名
+slaveof redis-master 6379
 # 连接主节点所需的密码
 masterauth 449554
 # 从节点自己的密码（可选，但建议设置）
@@ -5252,18 +5259,37 @@ protected-mode no
 replica-read-only yes
 ```
 
-两个节点分别执行下列命令（修改相关名字和挂载路径）创建并运行2个从节点
+> *配置文件中`slaveof redis-6.2.6 6379`最好直接写主节点`IP`，并设置主节点和从节点为静态`IP`，避免哨兵触发故障恢复时编辑配置文件出错。*
+
+创建并运行2个从节点
 
 ```shell
+# 创建并运行从节点1
 docker run -d \
   --name redis-slave1 \
   --network redis-network \
+  --ip 172.19.0.3 \ # 指定该容器在redis-network网络中的静态IP
   -p 6380:6379 \ # 将容器中6379端口映射到主机6380端口上
+  -e TZ=Asia/Shanghai \ # 设置时区
   -v /application/redis-slave1-6380/data:/data \
-  -v /application/redis-slave1-6380/conf/redis.conf:/usr/local/etc/redis/redis.conf \
+  -v /application/redis-slave1-6380/conf:/usr/local/etc/redis \ # 挂载整个配置文件夹
+  redis:6.2.6 \
+  redis-server /usr/local/etc/redis/redis.conf
+
+# 创建并运行从节点2
+docker run -d \
+  --name redis-slave2 \
+  --network redis-network \
+  --ip 172.19.0.4 \
+  -p 6381:6379 \
+  -e TZ=Asia/Shanghai \
+  -v /application/redis-slave2-6381/data:/data \
+  -v /application/redis-slave2-6381/conf:/usr/local/etc/redis \
   redis:6.2.6 \
   redis-server /usr/local/etc/redis/redis.conf
 ```
+
+> ***注意：为了让后期的Sentinel集群有权修改`redis`主从节点配置（故障转移），必须挂载整个配置文件夹，而不是文件本身`-v /application/redis-slave2-6381/conf:/usr/local/etc/redis`（并且文件夹内容应该是可写权限）***
 
 #### 6.2.2.数据同步原理
 
@@ -5286,7 +5312,9 @@ ___
 
 因此slave做数据同步，必须向master声明自己的`replication id`和`offset`，master才可以判断到底需要同步哪些数据。
 
-> **master如何判断slave节点是不是第一次来做数据同步？**根据replication id是否一致，如果不一致则slave是第一次来做同步。
+> **master如何判断slave节点是不是第一次来做数据同步？**
+>
+> * 根据`replication id`是否一致，如果不一致则slave是第一次来做同步。
 
 因此，slave在请求数据同步时需要同时携带`replid`和`offset`，如果是第一次请求数据同步，则master还要在版本信息阶段返回从节点`replid`和`offset`
 
@@ -5319,7 +5347,7 @@ ___
 
 
 
-> ***总结：`repl_baklog`大小有上限，写满后会覆盖最早的数据。如果slave断开连接时间过久，导致尚未备份的数据被覆盖，则无法基于log做增量同步，只会再次全量同步***
+> ***总之，`repl_baklog`大小有上限，写满后会覆盖最早的数据。如果slave断开连接时间过久，导致尚未备份的数据被覆盖，则无法基于log做增量同步，只会再次全量同步***
 
 #### 6.2.3.主从同步优化
 
@@ -5393,9 +5421,9 @@ ___
 
 **如何实现故障转移**
 
-当选中了其中一个slave为新的master后（例如slave1，图中左边的master:7002为原来的slave1），故障的转移步骤如下：
+故障转移开始时，Sentinel集群先选择一个sentinel节点作为故障转移领导者（一般选择先发现主观下线的节点）。然后选举新的master，当选中了其中一个slave为新的master后（例如`slave1`，图中左边的`master:7002`为原来的`slave1`），故障的转移步骤如下：
 
-* sentinel给备选的slave1节点发送`slaveof no one`命令，让该节点成为master
+* sentinel给备选的`slave1`节点发送`slaveof noone`（*永不为奴*）命令，让该节点成为master
 
 * sentinel给所有其它slave发送`slaveof 192.168.150.101 7002`命令，让这些slave成为新master的从节点，开始从新的master上同步数据
 
@@ -5442,8 +5470,8 @@ bind 0.0.0.0
 port 26379
 # sentinel工作目录，表示在该容器目录下写状态文件
 dir /tmp
-# 监控名为redis-6.2.6的主节点，地址为redis-6.2.6 6379 至少需要2两个哨兵同意才能判定主节点客观下线并执行故障转移
-sentinel monitor mymaster redis-6.2.6 6379 2
+# 监控IP为172.19.0.2的主节点，至少需要2两个哨兵同意才能判定主节点客观下线并执行故障转移
+sentinel monitor mymaster 172.19.0.2 6379 2
 # 提供主节点的密码
 sentinel auth-pass mymaster 449554
 # 哨兵认为主节点不可用的毫秒数
@@ -5458,8 +5486,6 @@ daemonize no
 logfile ""
 # 在Docker网络内关闭保护模式，允许其他容器连接
 protected-mode no
-# 是否允许Sentinel使用主机名/容器名监控master，默认no:只能使用ip地址
-sentinel resolve-hostnames yes
 ```
 
 > * 这里`mymaster`表示主节点名称，自定义，任意写
@@ -5486,25 +5512,14 @@ docker run -d \
   redis-server /usr/local/etc/redis/sentinel.conf --sentinel
 ```
 
-> * 启动命令最后一行 默认情况下，`redis`镜像的启动命令是`redis-server`，用于启动Redis服务器。这里使用`redis-server [配置文件路径] --sentinel`命令来启动**Redis哨兵**进程。
-> * **为了让Sentinel有权修改配置，必须挂载整个配置文件夹，而不是文件本身（并且文件夹内容应该是可写的）。**Sentinel在运行过程中会修改配置文件，因此需要保证宿主机挂载的文件夹是可写的，否则容器将会报错。
+> * `redis-server [配置文件路径] --sentinel`命令专门用来启动**Redis哨兵**进程。
+> * **注意**：为了让Sentinel有权修改配置，必须挂载整个配置文件夹，而不是文件本身（并且文件夹内容应该是可写的）。
+> * Sentinel在运行过程中会修改配置文件，因此需要保证宿主机挂载的文件夹是可写的，否则容器将会报错。
 
-查看哨兵容器中的日志
+终端持续展示某哨兵容器中的日志
 
 ```bash
-shu@shu-HP-Z4-G4-Workstation:/$ docker logs redis-sentinel-3
-1:X 17 Sep 2025 19:09:09.860 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
-1:X 17 Sep 2025 19:09:09.860 # Redis version=6.2.6, bits=64, commit=00000000, modified=0, pid=1, just started
-1:X 17 Sep 2025 19:09:09.860 # Configuration loaded
-1:X 17 Sep 2025 19:09:09.861 * monotonic clock: POSIX clock_gettime
-1:X 17 Sep 2025 19:09:09.861 * Running mode=sentinel, port=26379.
-1:X 17 Sep 2025 19:09:09.863 # Sentinel ID is 0d4ec277cab9dcacbb9ffe71bb4c8a01a23c908b
-1:X 17 Sep 2025 19:09:09.863 # +monitor master mymaster 172.19.0.2 6379 quorum 2
-1:X 17 Sep 2025 19:09:09.863 * +slave slave 172.19.0.3:6379 172.19.0.3 6379 @ mymaster 172.19.0.2 6379
-1:X 17 Sep 2025 19:09:09.865 * +slave slave 172.19.0.4:6379 172.19.0.4 6379 @ mymaster 172.19.0.2 6379
-1:X 17 Sep 2025 19:09:10.662 * +sentinel sentinel c812ab63a7ffcdb341ca1915e83806da94f37033 172.19.0.6 26379 @ mymaster 172.19.0.2 6379
-1:X 17 Sep 2025 19:09:11.526 * +sentinel sentinel a0985a86fd6a7ab2b5811fb96645082f675a726d 172.19.0.5 26379 @ mymaster 172.19.0.2 6379
-
+docker logs -f redis-sentinel-1
 ```
 
 验证Sentinel是否能访问master（Redis主节点）
@@ -5517,12 +5532,76 @@ docker exec -it redis-sentinel-1 redis-cli -p 26379 SENTINEL slaves mymaster
 > * `SENTINEL masters`：查看所有被监控的主节点信息
 > * `SENTINEL slaves mymaster`：查看主节点的从节点信息
 
+测试：尝试让当前的主节点（`redis-slave1`）宕机，查看`sentinel-1`日志
+
+```bash
+# 1.故障检测
+1:X 19 Sep 2025 16:19:40.811 # +sdown master mymaster 172.19.0.3 6379
+1:X 19 Sep 2025 16:19:40.863 # +odown master mymaster 172.19.0.3 6379 #quorum 3/2
+# ------ +sdown表示主管宕机 +odown表示客观宕机 ------
+
+# 2.领导者选举
+1:X 19 Sep 2025 16:19:40.863 # +new-epoch 11
+1:X 19 Sep 2025 16:19:40.863 # +try-failover master mymaster 172.19.0.3 6379
+1:X 19 Sep 2025 16:19:40.869 # +vote-for-leader a0985a86fd6a7ab2b5811fb96645082f675a726d 11
+1:X 19 Sep 2025 16:19:40.875 # c812ab63a7ffcdb341ca1915e83806da94f37033 voted for a0985a86fd6a7ab2b5811fb96645082f675a726d 11
+1:X 19 Sep 2025 16:19:40.875 # 0d4ec277cab9dcacbb9ffe71bb4c8a01a23c908b voted for a0985a86fd6a7ab2b5811fb96645082f675a726d 11
+# ------ 选举当前sentinel节点为故障转移领导者 ------
+
+# 3.选择新的主节点
+1:X 19 Sep 2025 16:19:40.960 # +elected-leader master mymaster 172.19.0.3 6379
+1:X 19 Sep 2025 16:19:40.960 # +failover-state-select-slave master mymaster 172.19.0.3 6379
+1:X 19 Sep 2025 16:19:41.037 # +selected-slave slave 172.19.0.4:6379 172.19.0.4 6379 @ mymaster 172.19.0.3 6379
+# ------ 选择了172.19.0.4节点作为新的master节点 ------
+
+# 4.提升从节点为主节点
+1:X 19 Sep 2025 16:19:41.037 * +failover-state-send-slaveof-noone slave 172.19.0.4:6379 172.19.0.4 6379 @ mymaster 172.19.0.3 6379
+1:X 19 Sep 2025 16:19:41.108 * +failover-state-wait-promotion slave 172.19.0.4:6379 172.19.0.4 6379 @ mymaster 172.19.0.3 6379
+1:X 19 Sep 2025 16:19:41.909 # +promoted-slave slave 172.19.0.4:6379 172.19.0.4 6379 @ mymaster 172.19.0.3 6379
+
+# 5.重新配置其他从节点
+1:X 19 Sep 2025 16:19:41.909 # +failover-state-reconf-slaves master mymaster 172.19.0.3 6379
+1:X 19 Sep 2025 16:19:41.979 * +slave-reconf-sent slave 172.19.0.2:6379 172.19.0.2 6379 @ mymaster 172.19.0.3 6379
+1:X 19 Sep 2025 16:19:42.923 * +slave-reconf-inprog slave 172.19.0.2:6379 172.19.0.2 6379 @ mymaster 172.19.0.3 6379
+1:X 19 Sep 2025 16:19:42.923 * +slave-reconf-done slave 172.19.0.2:6379 172.19.0.2 6379 @ mymaster 172.19.0.3 6379
+# ------ 成功将另一个从节点（172.19.0.2）重新配置指向新主节点 ------
+
+# 6.故障转移完成
+1:X 19 Sep 2025 16:19:42.989 # -odown master mymaster 172.19.0.3 6379
+1:X 19 Sep 2025 16:19:42.989 # +failover-end master mymaster 172.19.0.3 6379
+1:X 19 Sep 2025 16:19:42.989 # +switch-master mymaster 172.19.0.3 6379 172.19.0.4 6379
+
+# 7.最终状态配置
+1:X 19 Sep 2025 16:19:42.990 * +slave slave 172.19.0.2:6379 172.19.0.2 6379 @ mymaster 172.19.0.4 6379
+1:X 19 Sep 2025 16:19:42.990 * +slave slave 172.19.0.3:6379 172.19.0.3 6379 @ mymaster 172.19.0.4 6379
+1:X 19 Sep 2025 16:19:48.061 # +sdown slave 172.19.0.3:6379 172.19.0.3 6379 @ mymaster 172.19.0.4 6379
+# ------所有从节点都配置完成，旧主节点(172.19.0.3)被标记为宕机------
+```
+
 试验完主从集群和哨兵集群进行关闭
 
 ```bash
 docker stop redis-6.2.6 redis-slave1 redis-slave2 \
             redis-sentinel-1 redis-sentinel-2 redis-sentinel-3
 ```
+
+*附：本次搭建主从集群、哨兵集群实验中的对应节点`IP`*
+
+```bash
+redis-master:172.19.0.2 # redis-master不一定是主节点
+
+redis-slave1:172.19.0.3
+
+redis-slave2:172.19.0.4
+
+sentinel-1:172.19.0.5
+
+sentinel-2:172.19.0.6
+
+sentinel-3:172.19.0.7
+```
+
+参考博客：[使用docker部署redis哨兵(sentinel)时遇到的问题](https://blog.csdn.net/weixin_63028438/article/details/136077092)
 
 #### 6.3.3.RedisTemplate的哨兵模式
 
@@ -5791,14 +5870,14 @@ ___
 
 ```shell
 docker run -d  \
---name mysql \
--p 3306:3306 \
--e TZ=Asia/Shanghai \
--e MYSQL_ROOT_PASSWORD=root \
--v /root/mysql/data:/var/lib/mysql \
--v /root/mysql/init:/docker-entrypoint-initdb.d \
--v /root/mysql/conf:/etc/mysql/conf.d \
-mysql
+  --name mysql \
+  -p 3306:3306 \
+  -e TZ=Asia/Shanghai \
+  -e MYSQL_ROOT_PASSWORD=root \
+  -v /root/mysql/data:/var/lib/mysql \
+  -v /root/mysql/init:/docker-entrypoint-initdb.d \
+  -v /root/mysql/conf:/etc/mysql/conf.d \
+  mysql
 ```
 
 #### 2.2.4.使用Docker创建Redis容器
@@ -5807,7 +5886,7 @@ mysql
 
 ```shell
 sudo mkdir -p /application/redis/{data,conf} # 在redis目录下创建data和conf两个目录
-sudo chmod -R 775 /application/redis
+sudo chmod -R 0777 /application/redis # 授予该文件夹所有内容的完整读写权限
 ```
 
 在主机上创建配置文件
@@ -5826,7 +5905,7 @@ bind 0.0.0.0
 # 关闭保护模式
 protected-mode no
 
-# 注释掉daemonize yes，或者配置成 daemonize no。因为该配置和 docker run中的 -d 参数冲突，会导致容器一直启动失败
+# 设置redis在容器前台运行。否则，会与docker run中的 -d 参数冲突，会导致容器启动失败
 daemonize no
 
 # 开启AOF数据持久化
@@ -5839,10 +5918,13 @@ appendonly yes
 
 ```shell
 docker run -d \
-  --name redis-6.2.6 \
+  --name redis-master \
+  --network redis-network \
+  --ip 172.19.0.2 \ # 设置自定义网络静态IP
   -p 6379:6379 \
+  -e TZ=Asia/Shanghai \
   -v /application/redis/data:/data \  # 挂载数据目录，存放持久化数据
-  -v /application/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf \  # 挂载配置文件
+  -v /application/redis/conf:/usr/local/etc/redis \  # 挂载整个配置文件夹
   redis:6.2.6 \
   redis-server /usr/local/etc/redis/redis.conf  # 指定容器启动时使用自定义配置文件
 ```
@@ -5925,31 +6007,79 @@ docker build -t myImage:1.0 .
 
 ___
 
-> **注意**：*如，MySQL容器的IP为`172.17.0.2`，且是由网桥进行随机分配，当MySQL容器进行重启，再此期间则IP地址`172.17.0.2`可能会被占用，导致MySQL容器的IP地址发生改变。**因此，这种使用IP地址进行连接的方式不太友好。***
+> **注意**：*如，MySQL容器的`IP`为`172.17.0.2`，且是由网桥进行随机分配，当MySQL容器进行重启，再此期间则`IP`地址`172.17.0.2`可能会被占用，导致MySQL容器的`IP`地址发生改变。**因此，这种使用`IP`地址进行连接的方式不太友好。***
 
 ___
 
-**引入自定义网络的容器才可以通过容器名互相访问**（不需要知道对方的IP地址），Docker的网络操作命令如下：
+#### 2.4.1.创建自定义容器网络
+
+**引入自定义网络的容器才可以通过容器名互相访问**（不需要知道对方的`IP`地址），Docker的网络操作命令如下：
 
 ![](./images/Java/Snipaste_2024-12-09_21-54-50.png)
 
 **创建一个新的网络容器**
 
-```shell
+```bash
+# 创建一个普通的自定义网络
 docker network create 网络名
+# 创建一个固定IP池范围的自定义网络
+docker network create \
+  --subnet=172.20.0.0/16 \ # 指定网段
+  mynetwork # 指定网络名
 ```
 
 **将容器加入到自定义的网络中**
 
-```shell
+```bash
 docker network connect 网络名 容器名 
 ```
 
 **容器创建时就指定自定网络，此时，创建的容器不会再加入默认的网桥**
 
-```shell
+```bash
 docker run -d --name 容器名 -p 宿主机端口:映射端口 --network 网络名 镜像名
 ```
+
+创建并启动容器，给该容器**设置静态`ip`**（以创建Redis容器为例，省略了其它必要参数）
+
+```bash
+docker run -d \
+  --name redis-master \
+  --network redis-network \ # 加入自定义网络redis-network中
+  --ip 172.19.0.2 \ # 设置该容器静态IP为172.19.0.2
+  redis:6.2.6
+```
+
+> **注意**：只有在创建固定`IP`池范围的自定义网络容器中才可以使用参数`--ip`*（OpenAI陈述）*
+>
+> *个人尝试在未创建时指定`--subnet`参数的自定义网络中使用`--ip`也可以正常运行。*
+
+___
+
+**网络容器的`IP`是否固定问题？**
+
+默认情况
+
+- **桥接网络（默认的 `bridge` 网络）**
+   容器的 `IP` 在每次重启时 **不保证固定**，因为 Docker 会在容器启动时从网段动态分配 `IP`。
+   
+- **自定义网络（用户自己用 `docker network create` 创建的 `bridge` 或 `overlay` 网络）**
+   容器在自定义网络中分配的 `IP` **通常会保持不变**，只要：
+  
+  - 这个容器没有被删除（`docker stop`/`docker start` 是重启，容器 ID 不变）。
+  - 这个自定义网络没有被删除。
+  - 该 `IP` 没有被其他容器占用。
+  
+  也就是说：**只要容器 ID 没变，网络没变，Docker 会尝试保持它的 `IP` 一致。**
+
+哪些情况会导致`IP`变化
+
+* 你用 `docker run` 新建了一个同名的新容器（旧容器被 `rm` 掉了）。
+* 删除了自定义网络后又重新创建。
+* 在 `swarm`/`overlay` 网络中动态调度到不同节点。
+* Docker 版本 bug 或强制重新分配 `IP`。
+
+> *确保`IP`固定不变，可以使用上面的固定`IP`方式创建容器*
 
 ## 3.项目部署
 
@@ -5959,24 +6089,24 @@ docker run -d --name 容器名 -p 宿主机端口:映射端口 --network 网络�
 
 2. 部署Java项目（后端）时，将其打包成jar文件，并将对应的Dockerfile文件一并上传到同一目录下，使用命令`docker build -t myImage:1.0 .`来生成镜像，启动镜像时，需要将Java项目镜像加入网络容器中，使其项目中使用的数据库和中间件等生效。
 
-3. 部署前端项目到Nginx中，启动Nginx容器的命令为：
+3. 部署前端项目到`Nginx`中，启动`Nginx`容器的命令为：
 
    ```shell
    docker run -d \
-   -- name nginx \
-   -p 18080:18080 \  # 客户端映射的端口号
-   -p 18081:18081 \  # 后台映射的端口号
-   -v /root/nginx/html:/usr/share/nginx/html \  # 文件夹挂载 虚拟机路径:容器内的路径
-   -v /root/nginx/nginx.conf:/etc/nginx/nginx.conf \  # 配置文件的挂载 虚拟机路径:容器内的路径
-   --network heima \  # 加入的网络容器名
-   nginx
+     -- name nginx \
+     --network heima \  # 加入的网络容器名  
+     -p 18080:18080 \  # 客户端映射的端口号
+     -p 18081:18081 \  # 后台映射的端口号
+     -v /root/nginx/html:/usr/share/nginx/html \  # 文件夹挂载 虚拟机路径:容器内的路径
+     -v /root/nginx/nginx.conf:/etc/nginx/nginx.conf \  # 配置文件的挂载 虚拟机路径:容器内的路径
+     nginx
    ```
 
 ### 3.1.DockerCompose
 
 Docker Compose通过一个单独的`docker-compose.yml`模板文件（`yaml`格式）来定义一组相关联的应用容器（一个项目相关联的所有容器），帮助我们**实现多个相互关联的Docker容器的快速部署。**
 
-上述部署一个简单的Java项目，其中包含3个容器：MySQL、Nginx、Java项目，而稍微复杂的项目，其中还会有各种各样的其它中间件，需要部署的东西远不止3个，一一进行手动部署太过麻烦，而Docker Compose就可以帮助我们实现多个相互关联的Docker容器的快速部署。它允许用户通过一个单独的 `docker-compose.yml` 模板文件（YAML 格式）来定义一组相关联的应用容器。
+上述部署一个简单的Java项目，其中包含3个容器：MySQL、Nginx、Java项目，而稍微复杂的项目，其中还会有各种各样的其它中间件，需要部署的东西远不止3个，一一进行手动部署太过麻烦，而Docker Compose就可以帮助我们实现多个相互关联的Docker容器的快速部署。它允许用户通过一个单独的 `docker-compose.yml` 模板文件（`YAML` 格式）来定义一组相关联的应用容器。
 
 ___
 
