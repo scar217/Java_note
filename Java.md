@@ -5705,6 +5705,319 @@ replica-announce-port 6379
 
 ### 6.4.Redis分片集群
 
+Redis主从集群应对了高并发**读**的问题，但是为了提高主从之间同步时的性能，单节点内存设置不会太高，如果内存设置太高，则在做数据持久`RDB`或者全量同步时会有大量IO，性能有所下降；此时，若**有海量的数据需要存储应该怎么办？若Redis的写的并发也很高应该怎么办？**因此，需要用到Redis的分片集群。
+
+#### 6.4.1.搭建分片集群
+
+##### 6.4.1.1.分片集群的结构
+
+主从和哨兵可以解决高可用、高并发读的问题。但是依然有两个问题没有解决：
+
+* 海量数据存储问题
+* 高并发写问题
+
+___
+
+使用分片集群可以解决上述问题，分片集群特征：
+
+* 集群中有多个master，每个master保存不同数据（**扩大Redis内存上限**）
+* 每个master都可以有多个slave节点（**保证高并发读**）
+* master之间通过ping监测彼此健康状态（**master之间互相起到哨兵效果，有主客观下线，进行主从切换操作**）
+* 客户端请求可以访问集群任意节点，最终都会被转发到正确节点
+
+<img src="./images/Java/Snipaste_2025-09-24_16-02-50.png" style="zoom: 67%;" />
+
+___
+
+##### 6.4.1.2.使用Docker搭建集群
+
+延续使用镜像版本`redis-6.2.6`，创建3个一主一从，一共6个节点的**Redis Cluster结构**（分片集群）
+
+```bash
+# 在容器内监听的端口号
+port 7001
+# 允许其它容器连接
+bind 0.0.0.0
+# 开启集群功能
+cluster-enabled yes
+# 集群的配置文件名称，不需要我们创建，由Redis自己维护
+cluster-config-file nodes.conf
+# 节点心跳失效的超时时间
+cluster-node-timeout 5000
+# 数据库数量
+databases 1
+# 数据持久化文件
+dir "/data"
+# 注册的实例IP
+replica-announce-ip 100.74.164.16
+protected-mode no
+daemonize no
+```
+
+```bash
+for port in 7001 7002 7003 7004 7005 7006
+do
+  docker run -d \
+    --name redis-$port \
+    --net redis-cluster-net \
+    -e TZ=Asia/Shanghai \
+    -p $port:$port \
+    -p 1$port:1$port \
+    -v /application/redis-cluster/$port:/usr/local/etc/redis \
+    -v /application/redis-cluster/$port/data:/data \
+    redis:6.2.6 \
+    redis-server /usr/local/etc/redis/redis.conf
+done
+```
+
+> **说明**
+>
+> * `-p $port:$port` 映射 Redis 端口
+> * `-p 1$port:1$port` 映射集群总线端口（比如 17001 对应 7001，**总线端口=Redis端口+10000**）
+> * `--net redis-cluster-net` 保证容器在同一网络
+
+进入到任意一个容器中（如：7001）
+
+```bash
+docker exec -it redis-7001 bash
+redis-cli -c -p 7001 # 集群模式下，一定要加上参数 -c
+```
+
+5.0以后得Redis版本，集群管理已经集成到了`redis-cli`中，格式如下：（*这里的地址就是节点对外公布的地址，为了保证后期Java客户端可以远程访问该集群，`IP`地址和端口号直接使用宿主机上的*）
+
+```bash
+redis-cli --cluster create \
+100.74.164.16:7001 \
+100.74.164.16:7002 \
+100.74.164.16:7003 \
+100.74.164.16:7004 \
+100.74.164.16:7005 \
+100.74.164.16:7006 \
+--cluster-replicas 1
+```
+
+> **说明**
+>
+> * `redis-cli --cluster`或者`./redis-trib.rb`：代表集群操作命令
+> * `create`：代表是创建集群
+> * `--cluster-replicas 1`或者`--replicas 1`：指定集群中每个master的副本个数为1，此时`节点总数÷(replicas+1)`得到的就是master的数量。因此节点列表中的**前n个就是master**，**其它节点都是slave节点**，随机分配到不同master。
+> * **注**：`./redis-trib.rb`和`--replicas 1`是`Redis5.0`之前的操作命令
+
+**执行结果**
+
+```bash
+>>> Nodes configuration updated
+>>> Assign a different config epoch to each node
+>>> Sending CLUSTER MEET messages to join the cluster
+Waiting for the cluster to join
+
+>>> Performing Cluster Check (using node 100.74.164.16:7001)
+M: 5ff07b283c7aa81b43ad2c720982882cd74552a6 100.74.164.16:7001
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+M: 22be10e20a15a67fdf98cfcd24693dda1d2e3ac4 172.20.0.1:7002
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+S: 353220b92ea48aa236f4a9c2ef12462b118eb5e3 172.20.0.1:7005
+   slots: (0 slots) slave
+   replicates 22be10e20a15a67fdf98cfcd24693dda1d2e3ac4
+S: 0f90c8b38b4642b08529ff7b8f40832afa621b1d 172.20.0.1:7006
+   slots: (0 slots) slave
+   replicates 260299e64e25df9db3e8d8257f587bdd1ec8465d
+S: 5b50f76a1a4e3968a1a723f2276b610094b137cd 172.20.0.1:7004
+   slots: (0 slots) slave
+   replicates 5ff07b283c7aa81b43ad2c720982882cd74552a6
+M: 260299e64e25df9db3e8d8257f587bdd1ec8465d 172.20.0.1:7003
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+```
+
+**验证**：通过命令可以查看集群状态（*在容器中运行*）
+
+```bash
+redis-cli -c -p 7001 cluster nodes 
+```
+
+**一键关闭所有分片集群Docker容器**
+
+```bash
+for port in 7001 7002 7003 7004 7005 7006
+do
+ docker stop redis-$port
+done
+```
+
+#### 6.4.2.散列插槽
+
+##### 6.4.2.1.散列插槽原理
+
+Redis会把每一个master节点映射到0~16383共16384个插槽（hash slot）上，查看集群信息时就能看到：
+
+<img src="./images/Java/Snipaste_2025-09-24_20-17-31.png" style="zoom: 67%;" />
+
+**数据key不是与节点绑定，而是与插槽绑定**。Redis会**根据key的有效部分计算插槽值**，**有效部分分两种情况**：
+
+* key中包含`"{}"`，且`"{}"`中至少包含1个字符，`"{}"`中的部分就是有效部分。
+* key中不包含`"{}"`，整个key都是有效部分
+
+*例如*：key是`num`，那么就根据`num`计算，如果是`{itcast}num`，则根据`itcast`计算。计算方式**是利用`CRC16`算法得到一个hash值，然后对`16384`取余，得到结果就是slot值。**
+
+```bash
+# 公式
+slot = CRC16(key) % 16384
+# 这就建立以下映射关系
+key -> slot -> node
+```
+
+**原因**：Redis的主节点**可能出现宕机**或者是**集群扩容增加节点**或者是**集群收缩删除节点**，当出现节点宕机或删除时，如果数据与节点进行绑定，**增加/减少节点会导致几乎所有key的映射变化**，全局迁移数据，成本极高；如果数据与插槽进行绑定，**节点变化时，只需要迁移对应插槽**，不需要全量重新分布key，插槽是固定的（16384个），节点是动态的。
+
+##### 6.4.2.2.实际操作
+
+**进入`7001`节点容器中**：`docker exec -it redis-7001 bash`
+
+**进入容器的Redis客户端**，分片集群模式下连接到某个节点时，在命令中一定要加上`-c`参数
+
+```bash
+redis-cli -c -p 7001
+```
+
+**分别输入以下命令测试**
+
+```bash
+set num 123
+set a 1
+get num
+```
+
+<img src="./images/Java/Snipaste_2025-09-24_21-06-39.png" style="zoom:80%;" />
+
+> 执行结果如上图，在`7001`节点执行`set a 1`命令，计算出来的卡槽值为[15495]，在`7003`节点上，故重定向到`7003`节点，再执行该命令。在`7003`结点读取`num`对应的值，会先切换到`7003`节点再返回`num`的值。
+
+##### 6.4.2.3.总结
+
+**Redis如何判断某个key应该在哪个实例？**
+
+* 将16384个插槽分配到不同的实例
+* 根据key的有效部分计算哈希值，对16384取余
+* 余数作为插槽，寻找插槽所在实例即可
+
+**如何将同一类数据固定的保存在同一个Redis实例？**
+
+* 这一类数据使用相同的有效部分，例如key都以`{typeId}`为前缀
+
+#### 6.4.3.集群伸缩
+
+ 集群伸缩指的是集群**节点的增加和删除**
+
+##### 6.4.3.1.添加节点并分配插槽
+
+**案例**：向集群中添加一个新的master节点，并向其中存储`num=10`
+
+* 启动一个新的Redis实例，端口为7007
+* 添加7007到之前的集群，并作为一个master节点
+* 给7007节点分配插槽，使得`num`这个key可以存储到7004实例
+
+**添加节点命令**
+
+```bash
+# 不带参数表示添加节点作为集群的master
+redis-cli --cluster add-node new_host:new_port existing_host:existing_port \
+                             --cluster-slave \
+                             --cluster-master-id <arg>
+```
+
+> **说明**
+>
+> * `--cluster-slave`：指定添加的节点为从节
+> * `--cluster-master-id <arg>`：指定该从节点绑定的master
+> * `existing_host:existing_port`：表示集群中已存在的某个节点的`IP:Port`
+
+**数据（插槽）迁移命令**
+
+```bash
+redis-cli --cluster reshard host:port \
+                    --cluster-from <arg> \
+                    --cluster-to <arg> \
+                    --cluster-slots <arg> \
+                    --cluster-yes \
+                    --cluster-timeout <arg> \ # 设置迁移操作的超时时间（毫秒）
+                    --cluster-pipeline <arg> \ # 设置批量迁移的key数量（管道大小）
+                    --cluster-replace # 强制替换现有配置，即使有错误也继续
+```
+
+> **说明**
+>
+> * `host:port`： 指定集群中任意一个节点的地址和端口，客户端通过这个节点发现整个集群的拓扑结构
+> * `--cluster-from <arg>`：指定数据来源节点（插槽迁出的节点），格式是**节点ID**
+> * `--cluster-to <arg>`：指定数据目标节点（插槽迁入的节点），格式是**节点ID**
+> * `--cluster-slots <arg>`：指定要迁移的插槽数量（可以是范围的格式）
+> * `--cluster-yes`：自动确认操作，跳过确认提示
+
+___
+
+复制之前的配置文件，并修改端口号为7007，根据搭建分片集群的步骤，创建一个端口为7007的节点
+
+```bash
+docker run -d \
+  --name redis-7007 \
+  --net redis-cluster-net \
+  -e TZ=Asia/Shanghai \
+  -p 7007:7007 \
+  -p 17007:17007 \
+  -v /application/redis-cluster/7007:/usr/local/etc/redis \
+  -v /application/redis-cluster/7007/data:/data \
+  redis:6.2.6 \
+  redis-server /usr/local/etc/redis/redis.conf
+```
+
+进入到7007节点容器中
+
+```bash
+docker exec -it redis-7007 bash
+# 执行添加节点命令
+redis-cli --cluster add-node 100.74.164.16:7007 100.74.164.16:7002
+```
+
+查看集群节点信息，发现新增节点没有插槽
+
+<img src="./images/Java/Snipaste_2025-09-24_21-54-24.png" style="zoom:80%;" />
+
+**移动插槽**：`num`的插槽是[2765]，而该插槽值在7001节点上，于是需要移动7001上的3000个插槽[0-2999]到新节点7007中
+
+![](./images/java/Snipaste_2025-09-24_22-22-26.png)
+
+##### 6.4.3.2.从集群中移除节点
+
+**移除节点之前，需要先将该节点的插槽移动到其它节点上，不能直接执行移除节点命令**
+
+```bash
+# 将节点7007上的3000插槽迁移到7001节点上
+redis-cli --cluster reshard 100.74.164.16:7007 \
+                    --cluster-from 9d3701570b91163ce7afc29d95b572a81134c2c3 \
+                    --cluster-to 5ff07b283c7aa81b43ad2c720982882cd74552a6 \
+                    --cluster-slots 3000 \
+                    --cluster-yes
+```
+
+**最后执行移除命令**
+
+```bash
+# 最后一个参数表示7007节点的ID
+redis-cli --cluster del-node 100.74.164.16:7007 9d3701570b91163ce7afc29d95b572a81134c2c3
+```
+
+#### 6.4.4.故障转移
+
+
+
+#### 6.4.5.RedisTemplate访问分片集群
+
+
+
 # Docker
 
 ## 1.Docker安装和配置
