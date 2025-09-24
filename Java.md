@@ -5256,7 +5256,7 @@ daemonize no
 # 关闭保护模式，允许远程连接
 protected-mode no
 # 从节点只读（默认就是yes，显式写明更清晰）
-replica-read-only yes
+# replica-read-only yes
 ```
 
 > *配置文件中`slaveof redis-6.2.6 6379`最好直接写主节点`IP`，并设置主节点和从节点为静态`IP`，避免哨兵触发故障恢复时编辑配置文件出错。*
@@ -5359,7 +5359,7 @@ ___
 
 * Redis单节点上的内存占用不要太大，减少`RDB`导致的过多磁盘IO
 
-  > 减少Redis单节点上的内存上限，从而减少`RDB`生成的量（大小），进而减少网络传输的量和磁盘IO的量。、
+  > 减少Redis单节点上的内存上限，从而减少`RDB`生成的量（大小），进而减少网络传输的量和磁盘IO的量。
 
 * 适当提高`repl_baklog`的大小，发现slave宕机时尽快实现故障恢复，尽可能避免全量同步。
 
@@ -5581,7 +5581,10 @@ docker exec -it redis-sentinel-1 redis-cli -p 26379 SENTINEL slaves mymaster
 试验完主从集群和哨兵集群进行关闭
 
 ```bash
-docker stop redis-6.2.6 redis-slave1 redis-slave2 \
+docker stop redis-master redis-slave1 redis-slave2 \
+            redis-sentinel-1 redis-sentinel-2 redis-sentinel-3
+
+docker start redis-master redis-slave1 redis-slave2 \
             redis-sentinel-1 redis-sentinel-2 redis-sentinel-3
 ```
 
@@ -5605,15 +5608,102 @@ sentinel-3:172.19.0.7
 
 #### 6.3.3.RedisTemplate的哨兵模式
 
+**1.引入依赖**：在`pom`文件引入`redis`的`starter`依赖
 
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
 
+**2.配置Redis地址**
 
+```yaml
+spring:
+  redis:
+    sentinel:
+      master: mymaster # 指定master名称（创建sentinel集群时指定的名称）
+      nodes: # 指定redis-sentinel集群信息
+        - 100.74.164.16:26379
+        - 100.74.164.16:26380
+        - 100.74.164.16:26381
+      password: 449554 # 如果Sentinel没有设置密码，可以忽略这一行
+    password: 449554 # 如果Redis有密码
+```
 
+> * 在集群模式下，**主从结点的角色和地址会发生变更**，不能写死，**只需指定哨兵的地址即可**；
+> * 应用客户端不需要直接连接主从节点，而是通过Sentinel获取当前可用的主节点（或从节点地址）。
+> * 这里指定的**Redis密码是指主节点的密码**，并且**强烈建议主从节点统一密码，大多数Sentinel可能会因为密码不同导致故障转移失败。**
 
+**3.配置主从读写分离**：在启动类中编写一下配置，让读操作发送到从节点，让写操作发送到主节点
 
+```java
+@Bean
+public LettuceClientConfigurationBuilderCustomizer clientConfigurationBuilderCustomizer(){
+    return new LettuceClientConfigurationBuilderCustomizer() {
+        @Override
+        public void customize(LettuceClientConfiguration.LettuceClientConfigurationBuilder clientConfigurationBuilder) {
+            clientConfigurationBuilder.readFrom(ReadFrom.REPLICA_PREFERRED);
+        }
+    };
+}
+//如果一个接口内部只有一个方法，则可以替换成lambda表达式
+@Bean
+public LettuceClientConfigurationBuilderCustomizer clientConfigurationBuilderCustomizer(){
+    return clientConfigurationBuilder -> clientConfigurationBuilder.readFrom(ReadFrom.REPLICA_PREFERRED);
+}
+```
 
+> 这里的`ReadFrom`是配置Redis的读取策略，是一个**枚举**，包括下面选择：
+>
+> * `MASTER`：从主节点读取
+> * `MASTER_PREFERRED`：优先从master节点读取，master不可用才读取replica
+> * `REPLICA`：从slave（replica）节点读取
+> * `REPLICA_PREFERRED`：优先从slave（replica）节点读取，所有的slave都不可用才读取master
 
+##### 6.3.3.1.报错：客户端连接失败
 
+**问题描述**：按照以上信息对远程服务器（`100.74.164.16`）中的Sentinel docker容器进行配置时，出现可以正常连接Sentinel集群，但是不能正常访问Redis的主从集群。
+
+**分析原因**：观察报错日志发现，Lettuce（Redis客户端）可以正常访问`100.74.164.16:26379`（我的某个 Sentinel 节点），但Sentinel返回的Redis master/slave的地址是`172.19.0.x:6379`，这是Docker容器的地址，外部设备无法直接进行访问，因此导致Lettuce连接失败。
+
+**解决方法**：
+
+在Sentinel节点的配置文件中添加
+
+```bash
+# 把主节点的外部可访问的IP和端口告知Sentinel
+sentinel monitor mymaster 100.74.164.16 6379 2
+
+# -----------如果yaml配置文件中的Sentinel集群的IP:Port就是宿主机的IP:Port，则可以不用编写以下配置项-----------
+# 宿主机的IP
+sentinel announce-ip 100.74.164.16
+# 宿主机映射的端口号
+sentinel announce-port 26379
+```
+
+> * Redis Sentinel 集群里每个节点会把自己和监控的主/从信息广播给其他 Sentinel、客户端和 Redis 实例。
+> * 默认情况下，Sentinel 用的是自己监听的`IP`和端口。但在 Docker、K8s、NAT 或多网卡环境下，Sentinel 实际监听的地址往往是容器内网`IP`，这对外部客户端是不可达的。
+> * 这一对配置项的**主要作用**是**告诉Sentinel在向外部广播自己的身份时，使用哪个`IP`和端口**
+
+在Redis**从节点**的配置文件中添加
+
+```bash
+# 宿主机的IP：强制节点
+replica-announce-ip 100.74.164.16
+# 宿主机映射的端口号
+replica-announce-port 6379
+```
+
+> * Redis 从节点在跟主节点握手、以及把自己注册给 Sentinel 时，会向外报告自己的 IP 和端口。
+> * 默认情况下，它会用自己实际绑定的`IP`（比如容器内 `172.17.0.5`）和端口。
+> * 在 Docker、NAT 或多网卡环境下，这个默认`IP`/端口对外部不可达，Sentinel 或主节点无法正确连回这个从节点。
+> * 这对配置项的作用是**用来覆盖Redis从节点在向Sentinel报告自身地址时的默认值**。*（与上面配置项起同样的作用）*
+
+**注意**：主节点配置文件中使用配置项`replica-announce-ip`、`replica-announce-port`对Sentinel返回Master地址（外部可访问的`IP`地址）没任何作用，还是需要在`sentinel.conf`配置项`sentinel monitor mymaster 100.74.164.16 6379 2`中显式告诉外部可访问的`IP`地址和端口号。
+
+### 6.4.Redis分片集群
 
 # Docker
 
