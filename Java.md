@@ -5749,7 +5749,11 @@ databases 1
 # 数据持久化文件
 dir "/data"
 # 注册的实例IP
-replica-announce-ip 100.74.164.16
+cluster-announce-ip 100.74.164.16
+# 宿主机端口
+cluster-announce-port 7001
+# 集群总线端口（宿主机）
+cluster-announce-bus-port 17001
 protected-mode no
 daemonize no
 ```
@@ -5780,12 +5784,12 @@ done
 
 ```bash
 docker exec -it redis-7001 bash
-redis-cli -c -p 7001 # 集群模式下，一定要加上参数 -c
 ```
 
-5.0以后得Redis版本，集群管理已经集成到了`redis-cli`中，格式如下：（*这里的地址就是节点对外公布的地址，为了保证后期Java客户端可以远程访问该集群，`IP`地址和端口号直接使用宿主机上的*）
+**创建集群**：5.0以后得Redis版本，集群管理已经集成到了`redis-cli`中，格式如下：（*这里的地址就是节点对外公布的地址，为了保证后期Java客户端可以远程访问该集群，`IP`地址和端口号直接使用宿主机上的*）
 
 ```bash
+# 执行以下命令，创建集群
 redis-cli --cluster create \
 100.74.164.16:7001 \
 100.74.164.16:7002 \
@@ -5839,7 +5843,7 @@ M: 260299e64e25df9db3e8d8257f587bdd1ec8465d 172.20.0.1:7003
 **验证**：通过命令可以查看集群状态（*在容器中运行*）
 
 ```bash
-redis-cli -c -p 7001 cluster nodes 
+redis-cli -c -p 7001 cluster nodes # 集群模式下，一定要加上参数 -c
 ```
 
 **一键关闭所有分片集群Docker容器**
@@ -6086,6 +6090,369 @@ ___
 **在7003容器中执行命令`redis-cli -p 7003 cluster failover`，重新取得master身份，且7006节点变成slave。**
 
 #### 6.4.5.RedisTemplate访问分片集群
+
+`RedisTemplate`底层同样基于Lettuce实现了分片集群的支持，而使用的步骤与哨兵模式基本一致：
+
+* 引入Redis的starter依赖
+* 配置分片集群地址
+* 配置读写分离
+
+与哨兵模式相比，其中只有分片集群的配置方式略有差异：
+
+```yaml
+spring:
+  redis:
+    cluster:
+      nodes:
+        - 100.74.164.16:7001
+        - 100.74.164.16:7002
+        - 100.74.164.16:7003
+        - 100.74.164.16:7004
+        - 100.74.164.16:7005
+        - 100.74.164.16:7006
+```
+
+## 7.多级缓存
+
+### 7.1.传统缓存问题
+
+传统的缓存策略一般是请求到达Tomcat后，先查询Redis，如果未命中则查询数据库，存在下面问题：
+
+* 请求要经过Tomcat处理，Tomcat的性能成为整个系统的瓶颈（*Tomcat本身的并发能力不如Redis*）
+* Redis缓存失效时，会对数据库产生冲击
+
+<img src="./images/java/Snipaste_2025-09-28_16-39-46.png" style="zoom:67%;" />
+
+### 7.2.多级缓存方案
+
+多级缓存就是充分利用请求处理的每个环节，分别添加缓存，减轻Tomcat压力，提升服务性能：
+
+* 浏览器访问静态资源时，优先读取浏览器本地缓存
+* 访问非静态资源（`ajax`查询数据）时，访问服务端
+* 请求到达`Nginx`后，优先读取`Nginx`本地缓存
+* 如果`Nginx`本地缓存未命中，则去直接查询Redis（不经过Tomcat）
+* 如果Redis查询未命中，则查询Tomcat
+* 请求进入Tomcat后，优先查询JVM进程缓存
+* 如果JVM进程缓存未命中，则查询数据库
+
+<img src="./images/java/Snipaste_2025-09-28_16-52-30.png" style="zoom:80%;" />
+
+此时，所有的请求压力集中到`Nginx`当中，`Nginx`也不再是反向代理服务器，而是真正的`web`服务，**在里面需要编写本地缓存查询、Redis查询、Tomcat查询的业务逻辑**。后面上图的`Nginx`需要部署成一个集群，才能应对高并发，再有专门的`Nginx`服务器来做反向代理，当请求到达以后，反向代理到多个编写业务的`Nginx`服务器中。同时，Tomcat服务将来也会部署为集群模式。 <img src="./images/java/image-20210821080954947-2024-12-2614_50_15.png" style="zoom:67%;" />
+
+```bash
+docker run -d  \
+  --name mysql \
+  -p 3306:3306 \
+  -e TZ=Asia/Shanghai \
+  -e MYSQL_ROOT_PASSWORD=root \
+  -v /application/mysql/data:/var/lib/mysql \
+  -v /application/mysql/conf:/etc/mysql/conf.d \
+  mysql:5.7.25
+```
+
+### 7.3.JVM进程缓存
+
+#### 7.3.1.初识Caffeine
+
+缓存在日常开发中启动至关重要的作用，由于是存储在内存中，数据的读取速度是非常快的，能大量减少对数据库的访问，减少数据库的压力。我们把缓存分为两类：
+
+* **分布式缓存**，例如`Redis`
+  * 优点：存储容量大、可靠性更好、可以在集群间共享
+  * 缺点：访问缓存有网络开销
+  * 场景：缓存数据量较大、可靠性要求较高、需要在集群间共享
+* **进程本地缓存**，例如`HashMap`、`GuavaCache`
+  * 优点：读取本地内存，没有网络开销，速度更快
+  * 缺点：存储容量有限、可靠性较低、无法共享
+  * 场景：性能要求较高，缓存数据量较小
+
+___
+
+`Caffeine`是一个基于`Java8`开发的，提供了近乎最佳命中率的高性能的本地缓存库。**目前Spring内部的缓存使用的就是`Caffeine`。**Github地址：https://github.com/ben-manes/caffeine（其中，仓库的`Wiki`有文档说明）
+
+___
+
+`Caffeine`的基本使用
+
+```java
+@Test
+void testBasicOps() {
+    // 创建缓存对象
+    Cache<String, String> cache = Caffeine.newBuilder().build();
+
+    // 存数据
+    cache.put("gf", "迪丽热巴");
+
+    // 取数据，不存在则返回null
+    String gf = cache.getIfPresent("gf");
+    System.out.println("gf = " + gf);
+
+    // 取数据，如果未命中，则查询数据库，查询成功后会自动放入缓存
+    String defaultGF = cache.get("defaultGF", key -> { //这里的key就是 defaultGF
+        // 根据key去数据库查询数据
+        return "柳岩";
+    });
+    System.out.println("defaultGF = " + defaultGF);
+}
+```
+
+___
+
+实际开发中，缓存不能一味地进行存操作，需要有过期或者驱逐策略。
+
+`Caffeine`提供了三种缓存驱逐策略：
+
+* **基于容量**：设置缓存的数量上限，当到缓存空间不足时，采用**`LRU`清除策略**（清除很久没有被访问过的数据）
+
+  ```java
+  // 创建缓存对象，并设置缓存大小上限为1
+  Cache<String, String> cache = Caffeine.newBuilder()
+          .maximumSize(1)
+          .build();
+  ```
+
+* **基于时间**：设置缓存的有效时间
+
+  ```java
+  // 创建缓存对象，并设置缓存有效期为10秒，从最后一次写入开始计时
+  Cache<String, String> cache = Caffeine.newBuilder()
+          .expireAfterWrite(Duration.ofSeconds(10))
+          .build();
+  ```
+
+* **基于引用**：设置缓存为软引用或弱引用，利用`GC`来回收缓存数据。性能较差，不建议使用。
+
+> 在默认情况下，**当一个缓存元素过期的时候，`Caffeine`不会自动立即将其清理和驱逐**。而是在一次读或写操作后，或者在空闲时间完成对失效数据的驱逐。
+
+#### 7.3.2.实现JVM进程缓存
+
+**实现商品查询的本地进程缓存**
+
+利用`Caffeine`实现下列需求：
+
+* 给根据id查询商品的业务添加缓存，缓存未命中时查询数据库
+* 给根据id查询商品库存的业务添加缓存，缓存未命中时查询数据库
+* 缓存初始大小为100
+* 缓存上限为10000
+
+在这之前，需要将`Caffeine`提前初始化好并放入到Spring容器中。编写配置类
+
+```java
+@Configuration
+public class CaffeineConfig {
+
+    @Bean
+    public Cache<Long, Item> itemCache(){
+        return Caffeine.newBuilder()
+                .initialCapacity(100) //初始化大小
+                .maximumSize(10_000) //设置上限
+                .build();
+    }
+
+    @Bean
+    public Cache<Long, ItemStock> stockCache(){
+        return Caffeine.newBuilder()
+                .initialCapacity(100) //初始化大小
+                .maximumSize(10_000) //设置上限
+                .build();
+    }
+}
+```
+
+自动注入`Caffeine`实例，并加入缓存业务
+
+```java
+@RestController
+@RequestMapping("item")
+public class ItemController {
+	//用于访问数据库的接口
+    @Autowired
+    private IItemService itemService;
+    @Autowired
+    private IItemStockService stockService;
+
+    @Autowired
+    private Cache<Long, Item> itemCache;
+    @Autowired
+    private Cache<Long, ItemStock> stockCache;
+    
+	@GetMapping("/{id}")
+    public Item findById(@PathVariable("id") Long id) {
+        return itemCache.get(id, key -> itemService.query() //这里的key和id值相同
+                .ne("status", 3) //WHERE status != 3
+                .eq("id", key) //AND id = {key}
+                .one() //查询单条记录
+        );
+    }
+
+    @GetMapping("/stock/{id}")
+    public ItemStock findStockById(@PathVariable("id") Long id) {
+        return stockCache.get(id, key -> stockService.getById(key));
+    }
+}
+```
+
+#### 7.3.3.Lua语法入门
+
+在`Tomcat`服务器中使用**Java**代码编写业务逻辑，在`Nginx`集群中我们使用**Lua**脚本编写业务逻辑
+
+___
+
+Lua是轻量小巧的脚本语言，用标准C语言编写，其设计的目的是为了嵌入应用程序中，从而为应用程序提供灵活的扩展和定制功能。官网：https://www.lua.org/
+
+___
+
+**数据类型**
+
+![](./images/java/Snipaste_2025-10-05_16-53-21.png)
+
+> 可以利用type函数测试给定变量或者值的类型（控制台输入`lua`，进入`lua`的命令行模式）
+>
+> ```lua
+> zyy@HP-Z4-G4-Workstation:~/ZYY/lua-5.4.8/project$ lua
+> Lua 5.4.8  Copyright (C) 1994-2025 Lua.org, PUC-Rio
+> > print(type("hello world"))
+> string
+> > print(type(10.4*3))
+> number
+> ```
+
+**变量**
+
+lua声明变量的时候，并不需要指定数据类型，而是用`local`来声明变量为**局部变量**
+
+```lua
+-- 声明字符串，可以用单引号或双引号，
+local str = 'hello'
+-- 字符串拼接可以使用 ..
+local str2 = 'hello' .. 'world'
+-- 声明数字
+local num = 21
+-- 声明布尔类型
+local flag = true
+```
+
+Lua中的table类型既可以作为数组，又可以作为Java中的map来使用。**数组就是特殊的table，key是数组角标而已**：
+
+```lua
+-- 声明数组 ，key为角标的 table
+local arr = {'java', 'python', 'lua'}
+-- 声明table，类似java的map
+local map =  {name='Jack', age=21}
+```
+
+**Lua中的数组角标是从1开始**，访问的时候与Java中类似：
+
+```lua
+-- 访问数组，lua数组的角标从1开始
+print(arr[1])
+```
+
+Lua中的table可以用key来访问：
+
+```lua
+-- 访问table
+print(map['name'])
+print(map.name)
+```
+
+> `print()`语句自动换行
+
+**循环**
+
+**while循环**
+
+```lua
+while(condition)
+do
+   statements
+end
+```
+
+> **statements(循环体语句)** 可以是一条或多条语句，**condition(条件)** 可以是任意表达式，在 **condition(条件)** 为 true 时执行循环体语句。
+
+**for循环**
+
+Lua 编程语言中 for语句有两大类：：
+
+- 数值for循环
+- 泛型for循环
+
+**数值for循环**
+
+```lua
+for var=exp1,exp2,exp3 do  
+    <执行体>  
+end
+```
+
+> `var` 从 `exp1` 变化到 `exp2`，每次变化以 `exp3` 为步长递增 `var`，并执行一次 **"执行体"**。`exp3` 是可选的，如果不指定，**默认为1**。
+
+```lua
+for i=10,1,-1 do
+    print(i)
+end
+-- 输出 10 9 8 7 6 5 4 3 2 1
+```
+
+for的三个表达式在循环开始前一次性求值，以后不再进行求值。比如下面f(x)只会在循环开始前执行一次，其结果用在后面的循环中。
+
+```lua
+function f(x)  
+    print("function")  
+    return x*2   
+end  
+for i=1,f(5) do 
+    print(i)  
+end
+-- 输出 function 1 2 3 4 5 6 7 8 9 10
+```
+
+**泛型for循环**
+
+泛型 for 循环通过一个迭代器函数来遍历所有值，**类似 `Java` 中的 `foreach` 语句**。
+
+数组、table都可以利用for循环来遍历
+
+* 遍历数组
+
+  ```lua
+  -- 声明数组 key为索引的 table
+  local arr = {'java', 'python', 'lua'}
+  -- 遍历数组
+  for index,value in ipairs(arr) do
+      print(index, value) 
+  end
+  ```
+
+* 遍历普通table
+
+  ```lua
+  -- 声明map，也就是table
+  local map = {name='Jack', age=21}
+  -- 遍历table
+  for key,value in pairs(map) do
+     print(key, value) 
+  end
+  ```
+
+> **注**：在lua中`pairs`与`ipairs`两个迭代器的用法相近，但仍有区别：
+>
+> * `pairs`可以遍历表中所有的key，并且除了迭代器本身以及遍历表本身还可以返回nil；
+> * 但是`ipairs`遍历连续的数字索引数组，如果**遇到nil则退出**。`ipairs`在迭代过程中是会直接跳过所有手动设定key值的变量（key不连续值）；
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
