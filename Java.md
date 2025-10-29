@@ -2575,7 +2575,9 @@ Redis是一个key-value的数据库，**key一般是String类型**，value的类
 > * EXPIRE：给一个key设置有效期（key已经存在的情况下），有效期到期时该key会被自动删除。语法：`EXPIRE key seconds`单位是秒
 > * TTL：查看一个key的剩余有效期（-1表示永久有效，-2表示已到期）
 
-### 3.2.String类型
+## 4.Redis数据类型
+
+### 4.1.String类型
 
 String类型也就是字符串类型，是Redis中最简单的存储类型。其value是字符串，根据字符串的格式不同，又可以分为3类：
 
@@ -2597,7 +2599,7 @@ String类型也就是字符串类型，是Redis中最简单的存储类型。其
 > * SETNX：添加一个String类型的键值对，前提是这个key不存在，否则不执行
 > * SETEX：添加一个String类型的键值对，并且指定有效期，语法：`SETEX key seconds value`，单位秒
 
-### 3.3.Key的层级格式
+### 4.2.Key的层级格式
 
 **思考**：Redis没有类似MySQL中的Table的概念，我们该如何区分不同类型的key？（如：需要存储用户、商品信息到Redis，有一个用户id是1，有一个商品id恰好也是1）
 
@@ -2629,33 +2631,33 @@ set heima:product:1 '{"id":1, "name":"小米11", "price":4999}'
 
 ![](./images/Java/Snipaste_2024-10-29_19-06-14.png)
 
-### 3.4.Hash类型
+### 4.3.Hash类型
 
-**Hash类型**，也叫散列，其value是一个无序字典，**类似于Java中的HashMap结构**。Redis本身是`key:value`类型，但是Hash类型的value内部是又是一个Hash表`key:value`结构
+**Hash类型**，也叫散列，其value是一个无序字典，**类似于Java中的`HashMap`结构**。Redis本身是`key:value`类型，但是Hash类型的value内部是又是一个Hash表`key:value`结构
 
-**String结构**是将对象序列化为**JSON字符串**后存储（参考key层级格式的JSON字符串），当需要修改对象某个字段时很不方便。
+**String结构**是将对象序列化为**`JSON`字符串**后存储（参考key层级格式的`JSON`字符串），当需要修改对象某个字段时很不方便。
 
-**Hash结构**可以将对象中的每个字段独立存储，可以针对单个字段做CRUD：
+**Hash结构**可以将对象中的每个字段独立存储，可以针对单个字段做`CRUD`：
 
 <img src="./images/Java/Snipaste_2024-10-29_19-14-37.png" style="zoom:80%;" />
 
 **Hash的常见命令有**：
 
-> * HSET key field value：添加或者修改Hash类型key的field的值
-> * HGET key field：获取一个Hash类型key的field的值
-> * HMSET：批量添加多个Hash类型key的field的值
-> * HMGET：批量获取多个Hash类型key的field的值
-> * HGETALL：获取一个Hash类型的key中的所有的filed和value
-> * HKEYS：获取一个Hash类型的key中的所有的field
-> * HVALS：获取一个Hash类型的key中的所有的value
-> * HINCRBY:让一个Hash类型key的字段值自增并指定步长
-> * HSETNX：添加一个Hash类型的key的field值，前提是这个field不存在，否则不执行
+> * `HSET key field value`：添加或者修改Hash类型key的field的值
+> * `HGET key field`：获取一个Hash类型key的field的值
+> * `HMSET`：批量添加多个Hash类型key的field的值
+> * `HMGET`：批量获取多个Hash类型key的field的值
+> * `HGETALL`：获取一个Hash类型的key中的所有的filed和value
+> * `HKEYS`：获取一个Hash类型的key中的所有的field
+> * `HVALS`：获取一个Hash类型的key中的所有的value
+> * `HINCRBY`:让一个Hash类型key的字段值自增并指定步长
+> * `HSETNX`：添加一个Hash类型的key的field值，前提是这个field不存在，否则不执行
 
-### 3.5.List类型
+### 4.4.List类型
 
-Redis中的List类型与Java中的**LinkedList类似**，**可以看做是一个双向链表结构**。既可以支持正向检索，也可以支持反向检索。
+Redis中的List类型与Java中的**`LinkedList`类似**，**可以看做是一个双向链表结构**。既可以支持正向检索，也可以支持反向检索。
 
-特征与LinkedList类似：
+特征与`LinkedList`类似：
 
 * 有序
 * 元素可以重复
@@ -2666,16 +2668,16 @@ Redis中的List类型与Java中的**LinkedList类似**，**可以看做是一个
 
 **List常见命令有**：
 
-> * LPUSH key element ...：向列表左侧插入一个或多个元素
-> * LPOP key：移除并返回列表左侧的第一个元素，没有则返回nil
-> * RPUSH key element ... ：向列表右侧插入一个或多个元素
-> * RPOP key：移除并返回列表右侧的第一个元素
-> * LRANGE key star end：返回一段角标范围内的所有元素
-> * BLPOP和BRPOP：与LPOP和RPOP类似，只不过在没有元素时等待指定时间，而不是直接返回nil
+> * `LPUSH key element ...`：向列表左侧插入一个或多个元素
+> * `LPOP key`：移除并返回列表左侧的第一个元素，没有则返回nil
+> * `RPUSH key element ... `：向列表右侧插入一个或多个元素
+> * `RPOP key`：移除并返回列表右侧的第一个元素
+> * `LRANGE key star end`：返回一段角标范围内的所有元素
+> * `BLPOP和BRPOP`：与`LPOP`和`RPOP`类似，只不过在没有元素时等待指定时间，而不是直接返回nil
 
-### 3.6.Set类型
+### 4.5.Set类型
 
-Redis的Set结构与Java中的**HashSet类似**，**可以看做是一个value为null的HashMap**。因为也是一个hash表，因此具备与HashSet类似的**特征**：
+Redis的Set结构与Java中的**`HashSet`类似**，**可以看做是一个value为null的`HashMap`**。因为也是一个hash表，因此具备与`HashSet`类似的**特征**：
 
 * 无序
 * 元素不可重复
@@ -2684,16 +2686,16 @@ Redis的Set结构与Java中的**HashSet类似**，**可以看做是一个value�
 
 **Set的常见命令有**：
 
-> * SADD key member ... ：向set中添加一个或多个元素
-> * SREM key member ... : 移除set中的指定元素
-> * SCARD key： 返回set中元素的个数
-> * SISMEMBER key member：判断一个元素是否存在于set中
-> * SMEMBERS：获取set中的所有元素
-> * SINTER key1 key2 ... ：求key1与key2的交集
-> * SDIFF key1 key2 ...：求key1与key2的差集（key1中有，key2中没有的元素）
-> * SUNION key1 key2 ...：求key1与key2的并集
+> * `SADD key member ... `：向set中添加一个或多个元素
+> * `SREM key member ... `: 移除set中的指定元素
+> * `SCARD key`： 返回set中元素的个数
+> * `SISMEMBER key member`：判断一个元素是否存在于set中
+> * `SMEMBERS`：获取set中的所有元素
+> * `SINTER key1 key2 ... `：求key1与key2的交集
+> * `SDIFF key1 key2 ... `：求key1与key2的差集（key1中有，key2中没有的元素）
+> * `SUNION key1 key2 ... `：求key1与key2的并集
 
-### 3.7.SortedSet类型
+### 4.6.SortedSet类型
 
 Redis的SortedSet是一个**可排序的set集合**，在功能上与Java中的**TreeSet有些类似**，但底层数据结构却差别很大。SortedSet中的每一个元素都带有一个score属性，**即向SortedSet中存储元素时要带上一个score值**，可以基于score属性对元素排序，底层的实现是一个跳表（SkipList）加 hash表。
 
@@ -2707,28 +2709,28 @@ SortedSet具备下列**特性**：
 
 **SortedSet的常见命令有：**
 
-> * ZADD key score member：添加一个或多个元素到sorted set ，如果已经存在则更新其score值
-> * ZREM key member：删除sorted set中的一个指定元素
-> * ZSCORE key member : 获取sorted set中的指定元素的score值
-> * ZRANK key member：获取sorted set 中的指定元素的排名
-> * ZCARD key：获取sorted set中的元素个数
-> * ZCOUNT key min max：统计score值在给定范围内的所有元素的个数
-> * ZINCRBY key increment member：让sorted set中的指定元素自增，步长为指定的increment值
-> * ZRANGE key min max：按照score排序后，获取指定排名范围内的元素
-> * ZRANGEBYSCORE key min max：按照score排序后，获取指定score范围内的元素
-> * ZDIFF、ZINTER、ZUNION：求差集、交集、并集
+> * `ZADD key score member`：添加一个或多个元素到sorted set ，如果已经存在则更新其score值
+> * `ZREM key member`：删除sorted set中的一个指定元素
+> * `ZSCORE key member `: 获取sorted set中的指定元素的score值
+> * `ZRANK key member`：获取sorted set 中的指定元素的排名
+> * `ZCARD key`：获取sorted set中的元素个数
+> * `ZCOUNT key min max`：统计score值在给定范围内的所有元素的个数
+> * `ZINCRBY key increment member`：让sorted set中的指定元素自增，步长为指定的increment值
+> * `ZRANGE key min max`：按照score排序后，获取指定排名范围内的元素
+> * `ZRANGEBYSCORE key min max`：按照score排序后，获取指定score范围内的元素
+> * `ZDIFF、ZINTER、ZUNION`：求差集、交集、并集
 
 **注意**：所有的排名默认都是升序，如果要降序则在命令的Z后面添加REV即可
 
-## 4.Redis的Java客户端
+## 5.Redis的Java客户端
 
-* Jedis：以Redis命令作为方法名称，学习成本低，简单实用。但是Jedis实例是线程不安全的，多线程环境下需要基于连接池来使用
-* Lettuce：Lettuce是基于Netty实现的，支持同步、异步和响应式编程方式，并且是线程安全的。支持Redis的哨兵模式、集群模式和管道模式。
-* Redisson：Redisson是一个基于Redis实现的分布式、可伸缩的Java数据结构集合。包含了诸如Map、Queue、Lock、Semaphore、AtomicLong等强大功能。
+* `Jedis`：以Redis命令作为方法名称，学习成本低，简单实用。但是Jedis实例是线程不安全的，多线程环境下需要基于连接池来使用
+* `Lettuce`：Lettuce是基于Netty实现的，支持同步、异步和响应式编程方式，并且是线程安全的。支持Redis的哨兵模式、集群模式和管道模式。
+* `Redisson`：Redisson是一个基于Redis实现的分布式、可伸缩的Java数据结构集合。包含了诸如Map、Queue、Lock、Semaphore、AtomicLong等强大功能。
 
-### 4.1.Jedis
+### 5.1.Jedis
 
-#### 4.1.1.Jedis快速入门
+#### 5.1.1.Jedis快速入门
 
 [Jedis官网](https://github.com/redis/jedis)
 
@@ -2802,7 +2804,7 @@ public class JedisTest{
 }
 ```
 
-#### 4.1.2.Jedis连接池
+#### 5.1.2.Jedis连接池
 
 Jedis本身是线程不安全的，并且频繁的创建和销毁连接会有性能损失，因此推荐使用Jedis连接池代替Jedis的直连方式。
 
@@ -2864,7 +2866,7 @@ public class JedisTest {
 }
 ```
 
-### 4.2.SpringDataRedis
+### 5.2.SpringDataRedis
 
 SpringData是Spring中数据操作的模块，**包含对各种数据库的集成**，其中对Redis的集成模块就叫做SpringDataRedis，[官网地址](https://spring.io/projects/spring-data-redis)
 
@@ -2876,9 +2878,9 @@ SpringData是Spring中数据操作的模块，**包含对各种数据库的集�
 * 支持基于JDK、JSON、字符串、Spring对象的数据序列化及反序列化
 * 支持基于Redis的JDKCollection实现
 
-#### 4.2.1.SpringDataRedis快速入门
+#### 5.2.1.SpringDataRedis快速入门
 
-SpringDataRedis中提供了**RedisTemplate工具类**，其中封装了各种对Redis的操作。并且将不同数据类型的操作API封装到了不同的类型中：
+`SpringDataRedis`中提供了**`RedisTemplate`工具类**，其中封装了各种对Redis的操作。并且将不同数据类型的操作API封装到了不同的类型中：
 
 <img src="./images/Java/Snipaste_2024-10-30_13-47-32.png" style="zoom:80%;" />
 
@@ -2933,7 +2935,7 @@ class SpringDataRedisDemoApplicationTests {
 }
 ```
 
-#### 4.2.2.RedisSerializer序列化
+#### 5.2.2.RedisSerializer序列化
 
 RedisTemplate可以接受任意Object作为值写入Redis，只不过**写入之前会把Object序列化为字节形式，默认是采用JDK序列化。**得到的结果是：（缺点：可读性差，内存占用较大）
 
@@ -2970,9 +2972,9 @@ public class RedisConfig {
 
 整体可读性有了很大提升，**并且能将Java对象自动的序列化为JSON字符串，并且查询时能自动把JSON反序列化为Java对象**。不过，其中记录了序列化时对应的class名称，目的是为了查询时实现自动反序列化。**这会带来额外的内存开销**。
 
-#### 4.2.3.StringRedisTemplate
+#### 5.2.3.StringRedisTemplate
 
-为了节省内存空间，我们可以**不使用JSON序列化器来处理value**，而是**统一使用String序列化器，要求只能存储String类型的key和value。当需要存储Java对象时，手动完成对象的序列化和反序列化。**
+为了节省内存空间，我们可以**不使用`JSON`序列化器来处理value**，而是**统一使用String序列化器，但只能存储String类型的key和value。当需要存储Java对象时，手动完成对象的序列化和反序列化。**
 
 <img src="./images/Java/Snipaste_2024-10-30_20-39-58.png"  />
 
@@ -3011,7 +3013,7 @@ class SpringDataRedisDemoApplicationTests {
 
 ![](./images/Java/Snipaste_2024-10-30_20-53-49.png)
 
-#### 4.2.4.HashKey在Java中的调用
+#### 5.2.4.HashKey在Java中的调用
 
 ```java
 @SpringBootTest
@@ -3031,21 +3033,21 @@ class SpringDataRedisDemoApplicationTests {
 }
 ```
 
-## 5.Redis项目实战
+## 6.Redis项目实战
 
-项目地址：F:\SpringBoot_project\hm-dianping
+项目地址在本机：`F:\SpringBoot_project\hm-dianping`
 
 [Windows下操作Nginx](https://blog.csdn.net/weixin_47872719/article/details/120419261)
 
-### 5.1.短信登录(基于session)
+### 6.1.短信登录(基于session)
 
-#### 5.1.1.实现逻辑
+#### 6.1.1.实现逻辑
 
 **基于session实现登录**
 
 <img src="./images/Java/Snipaste_2024-11-03_14-28-31.png" style="zoom: 67%;" />
 
-#### 5.1.2.相关功能代码
+#### 6.1.2.相关功能代码
 
 **发送手机验证码**
 
@@ -3097,7 +3099,7 @@ public Result login(LoginFormDTO loginForm,HttpSession session) {
 
 **注意**：该方法有缺陷，即当用户提交接收验证码的手机号与填写验证码时的手机号不一致时，系统也会自动帮其注册。需要前端设置禁止修改或者后端在发送验证码步骤时候提前保存手机号并在创建到数据库时进行手机号验证。
 
-#### 5.1.3.集群的session共享问题
+#### 6.1.3.集群的session共享问题
 
 **session共享问题**：多台Tomcat并不共享session存储空间，当请求切换到不同Tomcat服务时导致数据丢失问题。
 
@@ -3111,11 +3113,11 @@ session的替代方案应该满足：
 
 **使用Redis代替session**
 
-### 5.2.短信登录(基于Redis)
+### 6.2.短信登录(基于Redis)
 
 **基于Redis实现共享session登录**
 
-#### 5.2.1.实现逻辑
+#### 6.2.1.实现逻辑
 
 实现逻辑与基于session的方式基本相似，其差别：
 
@@ -3126,7 +3128,7 @@ session的替代方案应该满足：
 
 <img src="./images/Java/Snipaste_2024-11-03_19-19-27.png" style="zoom:80%;" />
 
-#### 5.2.2.相关功能代码
+#### 6.2.2.相关功能代码
 
 **发送验证码**
 
@@ -3221,7 +3223,7 @@ public boolean preHandle(HttpServletRequest request, HttpServletResponse respons
 }
 ```
 
-#### 5.2.3.登录拦截器的优化
+#### 6.2.3.登录拦截器的优化
 
 目前设计**缺陷**：当用户已登录并设置其token周期，用户访问不通过拦截器的路径，如：首页等页面，则用户的token得不到及时的刷新，导致用户在登录半小时后自动退出登录。
 
@@ -3315,7 +3317,7 @@ public class MvcConfig implements WebMvcConfigurer {
 }
 ```
 
-### 5.3.商品查询缓存
+### 6.3.商品查询缓存
 
 **缓存**就是数据交换的缓冲区（cache），是存贮数据的临时地方，**一般读写性能较高**。
 
@@ -3330,11 +3332,11 @@ public class MvcConfig implements WebMvcConfigurer {
 > * 代码维护成本
 > * 运维成本
 
-#### 5.3.1.实现业务流程
+#### 6.3.1.实现业务流程
 
 <img src="./images/Java/Snipaste_2024-11-23_18-24-34.png" style="zoom: 67%;" />
 
-#### 5.3.2.代码实现
+#### 6.3.2.代码实现
 
 ```java
 @Service
@@ -3365,7 +3367,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 }
 ```
 
-#### 5.3.3.缓存更新策略
+#### 6.3.3.缓存更新策略
 
 ![](./images/Java/Snipaste_2024-12-03_21-53-52.png)
 
@@ -3399,7 +3401,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 * 缓存命中则直接返回
 * 缓存未命中则查询数据库，并写入缓存，**设定超时时间**
 
-#### 5.3.4.给缓存添加超时剔除和主动更新策略
+#### 6.3.4.给缓存添加超时剔除和主动更新策略
 
 **修改`ShopController`中的业务逻辑，满足下面的需求：**
 
@@ -3450,7 +3452,7 @@ public Result update(Shop shop) {
 }
 ```
 
-#### 5.3.5.缓存穿透
+#### 6.3.5.缓存穿透
 
 **缓存穿透**是指客户端请求的数据在缓存中和数据库中都不存在，这样缓存永远不会生效，这些请求都会打到数据库。
 
@@ -3525,7 +3527,7 @@ public Result queryById(Long id) {
 * 加强用户权限校验
 * 做好热点参数的限流
 
-#### 5.3.6.缓存雪崩
+#### 6.3.6.缓存雪崩
 
 **缓存雪崩**是指在同一时段大量的缓存key同时失效（TTL到期）或者Redis服务宕机，导致大量请求到达数据库，带来巨大压力。
 
@@ -3542,7 +3544,7 @@ public Result queryById(Long id) {
 > * 给缓存业务添加降级限流策略（如：拒绝服务）
 > * 给业务添加多级缓存（如：在反向代理服务器Nginx中作缓存，未命中再找Redis等在多个层面建立缓存）
 
-#### 5.3.7.缓存击穿
+#### 6.3.7.缓存击穿
 
 **缓存击穿问题**也叫热点key问题，就是一个被**高并发访问**并且**缓存重建业务较复杂**的key突然失效了，无数的请求访问会在瞬间给数据库带来巨大的冲击。
 
@@ -3732,11 +3734,11 @@ ___
     }
 ```
 
-#### 5.3.8.缓存工具封装
+#### 6.3.8.缓存工具封装
 
-### 5.4.优惠券秒杀
+### 6.4.优惠券秒杀
 
-#### 5.4.1.全局ID生成器
+#### 6.4.1.全局ID生成器
 
 全局ID生成器，是一种在分布式系统下用来生成全局（当前业务内）唯一ID的工具，一般满足下列特性：
 
@@ -3806,7 +3808,7 @@ public class RedisIdWorker {
 > * Redis自增
 > * snowflake算法（雪花算法）
 
-#### 5.4.2.实现秒杀下单
+#### 6.4.2.实现秒杀下单
 
 **下单时需要判断两点**：
 
@@ -3871,7 +3873,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 }
 ```
 
-#### 5.4.3.库存超卖问题
+#### 6.4.3.库存超卖问题
 
 按照以上代码执行，**优惠券会出现库存为-9的情况**，出现库存超卖问题。原因分析：
 
@@ -3964,7 +3966,7 @@ ___
     }
     ```
 
-#### 5.4.4.一人一单
+#### 6.4.4.一人一单
 
 **需求**：修改秒杀业务，要求同一个优惠券，一个用户只能下一单。
 
@@ -4087,7 +4089,7 @@ ___
 
 **解决办法**：让多个JVM使用同一把锁/锁监视器。
 
-### 5.5.分布式锁
+### 6.5.分布式锁
 
 <img src="./images/Java/Snipaste_2025-02-27_18-26-20.png" style="zoom:80%;" />
 
@@ -4105,7 +4107,7 @@ ___
 
 ![](./images/Java/Snipaste_2025-02-27_20-23-13.png)
 
-#### 5.5.1.基于Redis的分布式锁
+#### 6.5.1.基于Redis的分布式锁
 
 实现分布式锁时需要实现的两个基本方法：
 
@@ -4181,7 +4183,7 @@ public class SimpleRedisLock{
 }
 ```
 
-#### 5.5.2.分布式锁误删问题
+#### 6.5.2.分布式锁误删问题
 
 <img src="./images/Java/Snipaste_2025-03-06_15-45-28.png" style="zoom:80%;" />
 
@@ -4244,7 +4246,7 @@ public class SimpleRedisLock implements ILock{
 }
 ```
 
-#### 5.5.3.分布式锁的原子性问题(Lua)
+#### 6.5.3.分布式锁的原子性问题(Lua)
 
 <img src="./images/Java/Snipaste_2025-03-06_15-39-52.png" style="zoom:80%;" />
 
@@ -4385,7 +4387,7 @@ public class SimpleRedisLock implements ILock{
 }
 ```
 
-#### 5.5.4.Redisson快速入门
+#### 6.5.4.Redisson快速入门
 
 **基于setnx实现的分布式锁存在下面的问题：**
 
@@ -4461,7 +4463,7 @@ ___
    }
    ```
 
-#### 5.5.5.Redisson可重入锁原理
+#### 6.5.5.Redisson可重入锁原理
 
 设置Redis存储锁的结构为Hash类型：其中，field为线程标识，value为锁计数
 ![](./images/Java/Snipaste_2025-03-10_15-01-33.png)
@@ -4520,7 +4522,7 @@ else -- 等于0说明可以释放锁，直接删除
 end;
 ```
 
-#### 5.5.6.Redisson的锁重试和WatchDog机制
+#### 6.5.6.Redisson的锁重试和WatchDog机制
 
 ![](./images/Java/Snipaste_2025-03-10_18-24-39.png)
 
@@ -4534,7 +4536,7 @@ ___
 * **可重试**：利用信号量和`PubSub`功能实现等待、唤醒、获取锁失败的重试机制。
 * **超时续约**（锁的超时释放问题）：利用watchDog，每隔一段时间（`releaseTime` / 3），重置超时时间。
 
-#### 5.5.7.Redisson分布式锁主从一致性问题
+#### 6.5.7.Redisson分布式锁主从一致性问题
 
 **问题分析**：如果Redis提供了主从集群，主从同步存在延迟，当主宕机时，如果从还没来得及同步主中的锁数据，则会出现锁失效的情况。问题分析图如下：
 
@@ -4546,7 +4548,7 @@ ___
 
 ___
 
-#### 5.5.8.分布式锁总结
+#### 6.5.8.分布式锁总结
 
 * **不可重入Redis分布式锁**：
   * 原理：利用setnx的互斥性；利用ex避免死锁；释放锁时判断线程标识
@@ -4558,7 +4560,7 @@ ___
   * 原理：多个独立的Redis节点，必须在所有节点都获取重入锁，才算获取锁成功
   * 缺陷：运维成本高、实现复杂
 
-### 5.6.优惠券秒杀优化
+### 6.6.优惠券秒杀优化
 
 将Tomcat服务器中的操作进行分离，将**判断部分抽离到Redis中进行**，将判断和数据库操作进行异步线程处理。Redis判断通过后，将优惠券id、用户id、订单id等信息保存到阻塞队列中，**单独开启数据库操作线程，逐个处理队列中的数据**。
 
@@ -4737,7 +4739,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 * **内存限制问题**：使用的是JDK中的阻塞队列，本质使用的是JVM的内存，存在内存限制（1024*1024），高并发场景下可能会造成内存溢出。
 * **数据安全问题**：阻塞队列基于内存保存订单信息，当服务器发生重启或宕机，则所有数据都会丢失。
 
-#### 5.6.1.Redis消息队列
+#### 6.6.1.Redis消息队列
 
 **消息队列**（Message Queue），字面意思就是存放消息的队列。最简单的消息队列模型包括3个角色：
 
@@ -4755,7 +4757,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
 ___
 
-#### 5.6.2.基于List模拟消息队列
+#### 6.6.2.基于List模拟消息队列
 
 Redis的list数据结构是一个**双向链表**，很容易模拟出队列效果。
 
@@ -4782,7 +4784,7 @@ Redis的list数据结构是一个**双向链表**，很容易模拟出队列效�
 
 ____
 
-#### 5.6.3.基于PubSub消息队列
+#### 6.6.3.基于PubSub消息队列
 
 **PubSub（发布订阅）**是Redis2.0版本引入的**消息传递模型**。消费者可以订阅一个或多个channel，生产者向对应channel发送消息后，所有订阅者都能收到相关消息。
 
@@ -4811,7 +4813,7 @@ ___
 
 ___
 
-#### 5.6.4.基于Stream的消息队列
+#### 6.6.4.基于Stream的消息队列
 
 Stream是Redis5.0引入的一种**新数据类型**，可以实现一个功能非常完善的消息队列。
 
@@ -4959,11 +4961,11 @@ ___
 * **没有消息漏读的风险**
 * **有消息确认机制，保证消息至少被消费一次**
 
-#### 5.6.5.Redis消息队列比较
+#### 6.6.5.Redis消息队列比较
 
 <img src="./images/Java/Snipaste_2025-06-11_10-34-33.png" style="zoom:80%;" />
 
-## 6.分布式缓存
+## 7.分布式缓存
 
 **单点Redis的问题**
 
@@ -4972,20 +4974,20 @@ ___
 - 故障恢复问题：如果Redis宕机，则服务不可用，需要一种自动的故障恢复手段（**利用Redis哨兵，实现健康检测和自动恢复**）
 - 存储能力问题：Redis是基于内存存储，单节点能存储的数据量难以满足海量数据需求（**搭建分片集群，利用插槽机制实现动态扩容**）。
 
-### 6.1.Redis持久化
+### 7.1.Redis持久化
 
 Redis有两种持久化方案：
 
 * `RDB`（Redis Database Backup file，Redis数据备份文件）持久化
 * `AOF`（Append Only File，追加文件）持久化
 
-#### 6.1.1.RDB持久化
+#### 7.1.1.RDB持久化
 
 也被叫做Redis数据快照，简单来说就是**把内存中的所有数据都记录到磁盘中**。Redis的`RDB`持久化通过定期保存数据快照至一个rdb文件中，并在启动时自动加载`RDB`文件，以恢复之前保存的数据。快照文件称为`RDB`文件，默认是保存在当前运行目录。
 
 ___
 
-##### 6.1.1.1.执行时机
+##### 7.1.1.1.执行时机
 
 * **执行save命令时**
 
@@ -5038,7 +5040,7 @@ ___
 
 ___
 
-##### 6.1.1.2.bgsave命令
+##### 7.1.1.2.bgsave命令
 
 Linux系统中，所有的进程都没有办法直接操作物理内存，而是由操作系统给每个进程分配一个虚拟内存，主进程只能操作虚拟内存；操作系统会维护虚拟内存与物理内存的映射关系表，称作**页表**。主进程通过读写页表实现对物理内存的读写
 
@@ -5057,7 +5059,7 @@ Linux系统中，所有的进程都没有办法直接操作物理内存，而是
 
 ___
 
-##### 6.1.1.3.总结
+##### 7.1.1.3.总结
 
 **RDB方式bgsave的基本流程？**
 
@@ -5075,7 +5077,7 @@ ___
 - `RDB`执行间隔时间长，两次`RDB`之间写入数据有丢失的风险（服务器发生宕机）。
 - fork子进程、压缩、写出`RDB`文件都比较耗时。
 
-#### 6.1.2.AOF持久化
+#### 7.1.2.AOF持久化
 
 AOF全称为`Append Only File`（追加文件）。Redis处理的**每一个写命令**都会记录在AOF文件，可以看做是命令日志文件。当Redis服务器发生宕机时，执行一次AOF文件即可恢复。
 
@@ -5101,7 +5103,7 @@ zyy
 
 ___
 
-##### 6.1.2.1.AOF相关配置
+##### 7.1.2.1.AOF相关配置
 
 **AOF默认是关闭的**，需要修改redis.conf配置文件来开启AOF
 
@@ -5132,7 +5134,7 @@ appendfsync no
 
 ___
 
-##### 6.1.2.2.AOF文件重写
+##### 7.1.2.2.AOF文件重写
 
 因为是记录命令，AOF文件会比RDB文件大得多。而且AOF会记录对同一key的多次写操作，但只是最后一次写操作才有意义。通过**`bgrewriteaof`**命令，可以让AOF文件**执行重写功能**，**用最少的命令达到相同效果**。
 
@@ -5152,19 +5154,19 @@ auto-aof-rewrite-percentage 100
 auto-aof-rewrite-min-size 64mb
 ```
 
-#### 6.1.3.RDB和AOF对比
+#### 7.1.3.RDB和AOF对比
 
 RDB和AOF各有自己的优缺点，如果对数据安全性要求较高，**在实际开发中往往会结合两者来使用。**
 
 ![](./images/Java/Snipaste_2025-09-09_19-13-06.png)
 
-### 6.2.Redis主从
+### 7.2.Redis主从
 
 单节点Redis的并发能力是有上限的，要进一步提高Redis的并发能力，就需要**搭建主从集群，实现读写分离**。
 
 <img src="./images/Java/image-20241224151621838-2024-12-2415_16_43.png" style="zoom: 67%;" />
 
-#### 6.2.1.使用Docker创建主从
+#### 7.2.1.使用Docker创建主从
 
 为了使从节点配置文件中`slaveof redis-master 6379`项直接使用主节点名称，**即容器之间可以直接通过容器名进行通信**，单独创建网络容器来连接主从结构
 
@@ -5291,9 +5293,9 @@ docker run -d \
 
 > ***注意：为了让后期的Sentinel集群有权修改`redis`主从节点配置（故障转移），必须挂载整个配置文件夹，而不是文件本身`-v /application/redis-slave2-6381/conf:/usr/local/etc/redis`（并且文件夹内容应该是可写权限）***
 
-#### 6.2.2.数据同步原理
+#### 7.2.2.数据同步原理
 
-##### 6.2.2.1.全量同步
+##### 7.2.2.1.全量同步
 
 主从第一次同步是**全量同步**：
 
@@ -5331,7 +5333,7 @@ ___
 - master将`RDB`期间的命令记录在`repl_backlog`，并持续将log中的命令发送给slave
 - slave执行接收到的命令，保持与master之间的同步
 
-##### 6.2.2.2.增量同步
+##### 7.2.2.2.增量同步
 
 主从第一次同步时全量同步，但如果slave重启后（正常重启或宕机重启）同步，则执行**增量同步**。
 
@@ -5349,7 +5351,7 @@ ___
 
 > ***总之，`repl_baklog`大小有上限，写满后会覆盖最早的数据。如果slave断开连接时间过久，导致尚未备份的数据被覆盖，则无法基于log做增量同步，只会再次全量同步***
 
-#### 6.2.3.主从同步优化
+#### 7.2.3.主从同步优化
 
 主从同步可以保证主从数据的一致性，非常重要。可以从以下几个方面来优化Redis主从集群：
 
@@ -5367,7 +5369,7 @@ ___
 
   <img src="./images/Java/Snipaste_2025-09-11_14-13-36.png" style="zoom: 67%;" />
 
-#### 6.2.4.总结
+#### 7.2.4.总结
 
 **简述全量同步和增量同步区别？**
 
@@ -5383,13 +5385,13 @@ ___
 
 * slave节点断开又恢复，并且在`repl_baklog`中能找到offset时
 
-### 6.3.Redis哨兵
+### 7.3.Redis哨兵
 
 > 思考：slave节点宕机恢复后可以找master节点同步数据，那master节点宕机怎么办？
 
-#### 6.3.1.哨兵的作用和原理
+#### 7.3.1.哨兵的作用和原理
 
-##### 6.3.1.1.哨兵的作用
+##### 7.3.1.1.哨兵的作用
 
 Redis提供了哨兵（Sentinel）机制来实现主从集群的自动故障恢复。哨兵的结构和作用如下：
 
@@ -5399,7 +5401,7 @@ Redis提供了哨兵（Sentinel）机制来实现主从集群的自动故障恢�
 
 <img src="./images/Java/Snipaste_2025-09-11_16-23-59.png" style="zoom: 67%;" />
 
-##### 6.3.1.2.集群监控原理
+##### 7.3.1.2.集群监控原理
 
 Sentinel基于心跳机制监测服务状态，每隔1秒向集群的每个实例发送ping命令：
 
@@ -5433,7 +5435,7 @@ ___
 
 <img src="./images/java/image-20241224163250288-2024-12-2416_32_51.png" style="zoom:80%;" />
 
-##### 6.3.1.3.总结
+##### 7.3.1.3.总结
 
 **Sentinel的三个作用是什么？**
 
@@ -5452,7 +5454,7 @@ ___
 * 然后让所有节点都执行`slaveof 新master`
 * 修改故障节点配置，添加`slaveof 新master`
 
-#### 6.3.2.搭建哨兵集群
+#### 7.3.2.搭建哨兵集群
 
 创建三个用于Sentinel启动的文件夹
 
@@ -5606,7 +5608,7 @@ sentinel-3:172.19.0.7
 
 参考博客：[使用docker部署redis哨兵(sentinel)时遇到的问题](https://blog.csdn.net/weixin_63028438/article/details/136077092)
 
-#### 6.3.3.RedisTemplate的哨兵模式
+#### 7.3.3.RedisTemplate的哨兵模式
 
 **1.引入依赖**：在`pom`文件引入`redis`的`starter`依赖
 
@@ -5662,7 +5664,7 @@ public LettuceClientConfigurationBuilderCustomizer clientConfigurationBuilderCus
 > * `REPLICA`：从slave（replica）节点读取
 > * `REPLICA_PREFERRED`：优先从slave（replica）节点读取，所有的slave都不可用才读取master
 
-##### 6.3.3.1.报错：客户端连接失败
+##### 7.3.3.1.报错：客户端连接失败
 
 **问题描述**：按照以上信息对远程服务器（`100.74.164.16`）中的Sentinel docker容器进行配置时，出现可以正常连接Sentinel集群，但是不能正常访问Redis的主从集群。
 
@@ -5703,13 +5705,13 @@ replica-announce-port 6379
 
 **注意**：主节点配置文件中使用配置项`replica-announce-ip`、`replica-announce-port`对Sentinel返回Master地址（外部可访问的`IP`地址）没任何作用，还是需要在`sentinel.conf`配置项`sentinel monitor mymaster 100.74.164.16 6379 2`中显式告诉外部可访问的`IP`地址和端口号。
 
-### 6.4.Redis分片集群
+### 7.4.Redis分片集群
 
 Redis主从集群应对了高并发**读**的问题，但是为了提高主从之间同步时的性能，单节点内存设置不会太高，如果内存设置太高，则在做数据持久`RDB`或者全量同步时会有大量IO，性能有所下降；此时，若**有海量的数据需要存储应该怎么办？若Redis的写的并发也很高应该怎么办？**因此，需要用到Redis的分片集群。
 
-#### 6.4.1.搭建分片集群
+#### 7.4.1.搭建分片集群
 
-##### 6.4.1.1.分片集群的结构
+##### 7.4.1.1.分片集群的结构
 
 主从和哨兵可以解决高可用、高并发读的问题。但是依然有两个问题没有解决：
 
@@ -5729,7 +5731,7 @@ ___
 
 ___
 
-##### 6.4.1.2.使用Docker搭建集群
+##### 7.4.1.2.使用Docker搭建集群
 
 延续使用镜像版本`redis-6.2.6`，创建3个一主一从，一共6个节点的**Redis Cluster结构**（分片集群）
 
@@ -5844,6 +5846,7 @@ M: 260299e64e25df9db3e8d8257f587bdd1ec8465d 172.20.0.1:7003
 
 ```bash
 redis-cli -c -p 7001 cluster nodes # 集群模式下，一定要加上参数 -c
+# 若不带上参数-c 则是仅连接某个节点，即查到某信息不在该节点上，会重定向报错
 ```
 
 **一键关闭所有分片集群Docker容器**
@@ -5855,9 +5858,9 @@ do
 done
 ```
 
-#### 6.4.2.散列插槽
+#### 7.4.2.散列插槽
 
-##### 6.4.2.1.散列插槽原理
+##### 7.4.2.1.散列插槽原理
 
 Redis会把每一个master节点映射到0~16383共16384个插槽（hash slot）上，查看集群信息时就能看到：
 
@@ -5879,7 +5882,7 @@ key -> slot -> node
 
 **原因**：Redis的主节点**可能出现宕机**或者是**集群扩容增加节点**或者是**集群收缩删除节点**，当出现节点宕机或删除时，如果数据与节点进行绑定，**增加/减少节点会导致几乎所有key的映射变化**，全局迁移数据，成本极高；如果数据与插槽进行绑定，**节点变化时，只需要迁移对应插槽**，不需要全量重新分布key，插槽是固定的（16384个），节点是动态的。
 
-##### 6.4.2.2.实际操作
+##### 7.4.2.2.实际操作
 
 **进入`7001`节点容器中**：`docker exec -it redis-7001 bash`
 
@@ -5901,7 +5904,7 @@ get num
 
 > 执行结果如上图，在`7001`节点执行`set a 1`命令，计算出来的卡槽值为[15495]，在`7003`节点上，故重定向到`7003`节点，再执行该命令。在`7003`结点读取`num`对应的值，会先切换到`7003`节点再返回`num`的值。
 
-##### 6.4.2.3.总结
+##### 7.4.2.3.总结
 
 **Redis如何判断某个key应该在哪个实例？**
 
@@ -5913,11 +5916,11 @@ get num
 
 * 这一类数据使用相同的有效部分，例如key都以`{typeId}`为前缀
 
-#### 6.4.3.集群伸缩
+#### 7.4.3.集群伸缩
 
  集群伸缩指的是集群**节点的增加和删除**
 
-##### 6.4.3.1.从集群中添加节点并分配插槽
+##### 7.4.3.1.从集群中添加节点并分配插槽
 
 **案例**：向集群中添加一个新的master节点，并向其中存储`num=10`
 
@@ -5994,7 +5997,7 @@ redis-cli --cluster add-node 100.74.164.16:7007 100.74.164.16:7002
 
 ![](./images/java/Snipaste_2025-09-24_22-22-26.png)
 
-##### 6.4.3.2.从集群中移除节点
+##### 7.4.3.2.从集群中移除节点
 
 **移除节点之前，需要先将该节点的插槽移动到其它节点上，不能直接执行移除节点命令**
 
@@ -6014,7 +6017,7 @@ redis-cli --cluster reshard 100.74.164.16:7007 \
 redis-cli --cluster del-node 100.74.164.16:7007 9d3701570b91163ce7afc29d95b572a81134c2c3
 ```
 
-#### 6.4.4.故障转移
+#### 7.4.4.故障转移
 
 **故障转移前查看集群节点信息**：节点7003为主节点，7006为从节点
 
@@ -6073,7 +6076,7 @@ ___
 
 3. 最后是确定下线（*客观下线*），自动提升一个slave为新的master
 
-##### 6.4.4.1.手动故障转移
+##### 7.4.4.1.手动故障转移
 
 **场景**：Cluster集群中，某个master节点（如：7001）机器需要更新或维护，我们可以启动一个新的节点，让新的节点成为7001节点的slave，然后手动让新的slave节点去替换7001，实现故障转移，这样就实现了机器的升级。
 
@@ -6089,7 +6092,7 @@ ___
 
 **在7003容器中执行命令`redis-cli -p 7003 cluster failover`，重新取得master身份，且7006节点变成slave。**
 
-#### 6.4.5.RedisTemplate访问分片集群
+#### 7.4.5.RedisTemplate访问分片集群
 
 `RedisTemplate`底层同样基于Lettuce实现了分片集群的支持，而使用的步骤与哨兵模式基本一致：
 
@@ -6112,9 +6115,9 @@ spring:
         - 100.74.164.16:7006
 ```
 
-## 7.多级缓存
+## 8.多级缓存
 
-### 7.1.传统缓存问题
+### 8.1.传统缓存问题
 
 传统的缓存策略一般是请求到达Tomcat后，先查询Redis，如果未命中则查询数据库，存在下面问题：
 
@@ -6123,7 +6126,7 @@ spring:
 
 <img src="./images/java/Snipaste_2025-09-28_16-39-46.png" style="zoom:67%;" />
 
-### 7.2.多级缓存方案
+### 8.2.多级缓存方案
 
 多级缓存就是充分利用请求处理的每个环节，分别添加缓存，减轻Tomcat压力，提升服务性能：
 
@@ -6147,12 +6150,12 @@ docker run -d  \
   -e MYSQL_ROOT_PASSWORD=root \
   -v /application/mysql/data:/var/lib/mysql \
   -v /application/mysql/conf:/etc/mysql/conf.d \
-  mysql:5.7.25
+  mysql:5.8.25
 ```
 
-### 7.3.JVM进程缓存
+### 8.3.JVM进程缓存
 
-#### 7.3.1.初识Caffeine
+#### 8.3.1.初识Caffeine
 
 缓存在日常开发中启动至关重要的作用，由于是存储在内存中，数据的读取速度是非常快的，能大量减少对数据库的访问，减少数据库的压力。我们把缓存分为两类：
 
@@ -6223,7 +6226,7 @@ ___
 
 > 在默认情况下，**当一个缓存元素过期的时候，`Caffeine`不会自动立即将其清理和驱逐**。而是在一次读或写操作后，或者在空闲时间完成对失效数据的驱逐。
 
-#### 7.3.2.实现JVM进程缓存
+#### 8.3.2.实现JVM进程缓存
 
 **实现商品查询的本地进程缓存**
 
@@ -6291,7 +6294,7 @@ public class ItemController {
 }
 ```
 
-#### 7.3.3.Lua语法入门
+#### 8.3.3.Lua语法入门
 
 在`Tomcat`服务器中使用**Java**代码编写业务逻辑，在`Nginx`集群中我们使用**Lua**脚本编写业务逻辑
 
@@ -6315,6 +6318,8 @@ ___
 > > print(type(10.4*3))
 > number
 > ```
+
+___
 
 **变量**
 
@@ -6357,6 +6362,8 @@ print(map.name)
 
 > `print()`语句自动换行
 
+___
+
 **循环**
 
 **while循环**
@@ -6394,7 +6401,7 @@ end
 -- 输出 10 9 8 7 6 5 4 3 2 1
 ```
 
-for的三个表达式在循环开始前一次性求值，以后不再进行求值。比如下面f(x)只会在循环开始前执行一次，其结果用在后面的循环中。
+for的三个表达式在循环开始前一次性求值，以后不再进行求值。比如**下面f(x)只会在循环开始前执行一次**，其结果用在后面的循环中。
 
 ```lua
 function f(x)  
@@ -6439,6 +6446,1876 @@ end
 >
 > * `pairs`可以遍历表中所有的key，并且除了迭代器本身以及遍历表本身还可以返回nil；
 > * 但是`ipairs`遍历连续的数字索引数组，如果**遇到nil则退出**。`ipairs`在迭代过程中是会直接跳过所有手动设定key值的变量（key不连续值）；
+
+___
+
+**函数**
+
+定义函数的语法
+
+```lua
+[local] function 函数名(arg1, arg2..., arg)
+    --函数体
+    return 返回值
+end
+```
+
+___
+
+**条件控制**
+
+基本`if`语句
+
+```lua
+if(布尔表达式) then
+   --[ 布尔表达式为 true 时执行该语句块 ]
+end
+```
+
+`if-else`语句
+
+```lua
+if(布尔表达式) then
+   --[ 布尔表达式为 true 时执行该语句块 ]
+else
+   --[ 布尔表达式为 false 时执行该语句块 ]
+end
+```
+
+`if-elseif-else`语句
+
+```lua
+if(布尔表达式) then
+   --[ 布尔表达式为 true 时执行该语句块 ]
+elseif
+   --[ 布尔表达式为 true 时执行该语句块 ]
+else
+   --[ 布尔表达式为 false 时执行该语句块 ]
+end
+```
+
+与Java不同，布尔表达式中的逻辑运算是基于英文单词
+
+| 操作符 |                     描述                     |        实例        |
+| :----: | :------------------------------------------: | :----------------: |
+|  and   | 逻辑与操作符。若A为false，则返回A，否则返回B |  (A and B)为false  |
+|   or   | 逻辑或操作符。若A为true，则返回A，否则返回B  |   (A or B)为true   |
+|  not   |       逻辑非操作符。与逻辑运算结果相反       | not(A and B)为true |
+
+##### 8.3.3.1.Lua语法中的.和:访问
+
+**通过`.`和`:`来访问属性/方法时有重要区别**
+
+`.`运算符：
+
+* 用于直接访问表（table）数据类型的字段
+* 不会自动传递`self`参数
+
+`:`运算符：
+
+* 用于调用方法时的语法糖
+* 自动将调用者作为`self`参数传递
+
+重要区别总结：
+
+|    特性    |       `.` 运算符       |       `:` 运算符        |
+| :--------: | :--------------------: | :---------------------: |
+|  参数传递  |    不自动传递 self     | 自动传递调用者作为 self |
+|    语法    | `obj.method(obj, arg)` |    `obj:method(arg)`    |
+| 定义方法时 | 需要显式声明 self 参数 |   自动包含 self 参数    |
+|  使用场景  | 访问属性、调用静态方法 |      调用对象方法       |
+
+**用法总结**
+
+* 当**不涉及Lua对象方法**的访问时（*如，只是访问一个普通的模块函数*），一律可以使用`.`调用方法或属性。
+* 在Lua类中使用`:`定义方法时，则说明需要使用到该类中的属性，访问时使用`:`进行访问。
+* 在Lua类中使用`.`定义方法时，则说明不使用类中的属性，访问时使用`.`访问。
+* 在Lua类中用`:`定义的方法使用`.`调用时，需要手动传递`self`参数，这个参数等同于`Java`中的`this`关键词，表示对象本身。
+
+### 8.4.多级缓存
+
+#### 8.4.1.初识OpenResty
+
+`lua`的目的是为了在`Nginx`上编程，编写业务逻辑，同时需要用到组件`OpenResty`来访问数据库等操作。
+
+`OpenResty`是一个基于`Nginx`的高性能Web平台，用于方便地搭建能够处理超高并发、扩展性极高的动态Web应用、Web服务和动态网关。具备下列特点：
+
+* 具备`Nginx`的完整功能
+* 基于`Lua`语言进行扩展，集成了大量精良的Lua库、第三方块
+* 允许使用`Lua`自定义业务逻辑、自定义库
+
+官方网站：https://openresty.org/cn/
+
+___
+
+**使用Docker配置`OpenResty`环境**
+
+拉取OpenResty镜像
+
+```bash
+docker pull openresty/openresty:jammy
+```
+
+在宿主机上创建配置目录进行挂载
+
+```bash
+mkdir -p /home/shu/ZYY/openresty/conf
+mkdir -p /home/shu/ZYY/openresty/html
+```
+
+编写自定义配置文件`nginx.conf`
+
+创建并启动`OpenResty`容器
+
+```bash
+docker run -d \
+  --name openresty \
+  -p 8080:80 \
+  -e TZ=Asia/Shanghai \
+  -v /home/shu/ZYY/openresty/conf/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf \
+  -v /home/shu/ZYY/openresty/html:/usr/local/openresty/nginx/html \
+  openresty/openresty:jammy
+```
+
+___
+
+在window浏览器中发送网页请求`http://localhost:80/item.html?id=1001`会进入`item.html`页面，并自动发送数据GET请求`http://localhost/api/item/1001`到window的`nginx`服务器中（此处的`nginx`起反向代理的作用），触发下列映射，到Linux远程服务器的`nginx`集群中（Linux中的`OpenResty`）
+
+![](./images/java/Snipaste_2025-10-06_16-45-26.png)
+
+**需求**：在`OpenResty`中（在远程Linux服务器`100.74.164.16`上）接收这个请求，并返回一段商品的假数据
+
+*步骤一*：修改Linux中的`nginx.conf`文件（OpenResty）
+
+1. 在`nginx.conf`的`http`下面，添加对OpenResty的Lua模块的加载
+
+   *OpenResty的很多功能都依赖于其目录下的Lua库，需要在`nginx.conf`中指定依赖库的目录，并导入依赖：*
+
+   ```nginx
+   # lua 模块
+   lua_package_path "/usr/local/openresty/lualib/?.lua;;";
+   # c 模块     
+   lua_package_cpath "/usr/local/openresty/lualib/?.so;;";
+   ```
+
+2. 在`nginx.conf`的`server`下面，添加对`/api/item`这个路径的监听
+
+   ```nginx
+   location  /api/item {
+       # 响应类型，这里返回json
+       default_type application/json;
+       # 响应数据由lua/item.lua文件来决定
+       content_by_lua_file lua/item.lua;
+   }
+   ```
+
+   *在`lua/item.lua`文件中，可以通过lua脚本调用相关的库进行业务的编写*
+
+*步骤二*：编写`item.lua`文件（在`nginx`集群中编写业务逻辑）
+
+1. **在`nginx`目录下创建文件夹lua**，并在lua文件夹下创建文件：`item.lua`
+
+   ```bash
+   mkdir lua
+   cd lua
+   touch item.lua
+   ```
+
+2. 内容如下
+
+   ```lua
+   -- 返回假数据，这里的ngx.say()函数，就是写数据到Response中
+   ngx.say('{"id":10001,"name":"SALSA AIR","title":"RIMOWA 100寸托运箱拉杆箱 ZYY系列果绿色 820.70.36.4","price":20000,"image":"https://m.360buyimg.com/mobilecms/s720x720_jfs/t6934/364/1195375010/84676/e9f2c55f/597ece38N0ddcbc77.jpg!q70.jpg.webp","category":"拉杆箱","brand":"RIMOWA","spec":"","status":1,"createTime":"2019-04-30T16:00:00.000+00:00","updateTime":"2019-04-30T16:00:00.000+00:00","stock":2999,"sold":31290}')
+   ```
+
+   *`ngx.say`函数相当于Java中的`response.println()`函数，将数据结果写到浏览器当中*
+
+3. 重新加载配置（重启`openresty`容器）
+
+#### 8.4.2.OpenResty获取请求参数
+
+**`OpenResty`提供了各种API用来获取不同类型的请求参数：**
+
+<img src="./images/java/Snipaste_2025-10-07_15-56-02.png" style="zoom:80%;" />
+
+> **路径占位符**中的正则表达式`(\d+)`：
+>
+> * `\d`：表示数字
+> * `+`：表示一个或多个
+> * `()`：用于捕获这个值
+
+___
+
+在查询商品信息的请求中，通过路径占位符的方式，传递了商品id到后台：
+
+**Request URL**:`http://localhost/api/item/10001`，其中商品id是以路径参数传递的，因此可以利用正则表达式匹配的方式来获取ID。
+
+**需求**：在`OpenResty`中接收这个请求，并获取路径中的id信息，拼接到结果的`json`字符串中返回
+
+在`nginx.conf`配置文件中修改监听`/api/item/`路径的代码
+
+```nginx
+location ~ /api/item/(\d+) {
+    # 默认的响应类型
+    default_type application/json;
+    # 响应结果由lua/item.lua文件来决定
+    content_by_lua_file lua/item.lua;
+}
+```
+
+在`item.lua`文件中获取捕获到的参数，并将其拼接到`json`数据中返回
+
+```lua
+-- 获取路径参数
+local id = ngx.var[1]
+-- 这里使用lua的字符拼接方式： ..空格id空格..
+ngx.say('{"id":' .. id .. ',"name":"SALSA AIR","title":"RIMOWA 100寸托运箱拉杆箱 ZYY系列果绿色 820.70.36.4","price":20000,"image":"https://m.360buyimg.com/mobilecms/s720x720_jfs/t6934/364/1195375010/84676/e9f2c55f/597ece38N0ddcbc77.jpg!q70.jpg.webp","category":"拉杆箱","brand":"RIMOWA","spec":"","status":1,"createTime":"2019-04-30T16:00:00.000+00:00","updateTime":"2019-04-30T16:00:00.000+00:00","stock":2999,"sold":31290}')
+```
+
+#### 8.4.3.OpenResty查询Tomcat
+
+`nginx`本地缓存未命中时查询`Redis`缓存，`Redis`缓存未命中需要查询`Tomcat`，最后将查询到的数据写入`nginx`本地缓存中。
+
+![](./images/java/Snipaste_2025-10-07_16-23-40.png)
+
+___
+
+**需求**：获取请求路径中的商品id信息，根据id向Tomcat查询商品信息
+
+修改`item.lua`文件，满足下面的需求：
+
+* 获取请求参数中的id
+* 根据id向Tomcat服务器发送请求，查询商品信息
+* 根据id向Tomcat服务器发送请求，查询库存信息
+* 组装商品信息、库存信息，序列化为`JSON`格式并返回
+
+##### 8.4.3.1.Nginx内部发送Http请求
+
+nginx提供了内部API用以发送http请求：
+
+```lua
+local resp = ngx.location.capture("/path",{
+    method = ngx.HTTP_GET, -- 请求方式
+    args = {a=1,b=2}, -- get方式传参
+    body = "c=3&d=4" -- post方式传参
+})
+```
+
+返回的响应内容包括：
+
+* `resp.status`：响应状态码
+* `resp.header`：响应头，是一个table
+* `resp.body`：响应体，就是响应数据
+
+> **注意**
+>
+> * 这里的`path`是路径，**并不包含`IP`和端口**。这个请求会被`nginx`内部的`server`监听并处理。
+> * get传参和post传参不能同时使用，根据选择的请求方式进行传参。
+
+但是我们希望这个请求发送到Tomcat服务器，所以还需要编写一个server来对这个路径做反向代理
+
+```nginx
+location /item {
+    # 这里是windows电脑的ip和Java服务端口
+    proxy_pass https://100.103.153.73:8081;
+}
+# 以后凡是在lua脚本中调用 /item 开头的路径都会到达windows上的Tomcat
+```
+
+以后凡是在lua脚本中调用`/item`开头的路径都会到达windows上的Tomcat
+
+##### 8.4.3.2.封装Http查询的函数
+
+我们可以把`http`查询的请求封装为一个函数，放到`OpenResty`函数库中，方便后期使用：
+
+1. 在`/usr/local/openresty/lualib`目录下创建`common.lua`文件
+
+   ```bash
+   vim /usr/local/openresty/lualib/common.lua
+   ```
+
+2. 在`common.lua`中封装`http`查询的函数
+
+   ```lua
+   -- 封装函数，发送http请求，并解析响应
+   local function read_http(path, params)
+       local resp = ngx.location.capture(path,{ 
+               method = ngx.HTTP_GET, -- 处理get请求
+               args = params,
+           })
+       if not resp then
+           -- 记录错误信息，返回404
+           ngx.log(ngx.ERR, "http not found, path: ", path, ", args: ", args)
+           ngx.exit(404)
+       end
+       return resp.body
+   end
+   -- 将方法导出:以table数据格式
+   local _M = {
+       read_http = read_http
+   }
+   return _M
+   -- _M为约定俗成的命名，可以替换成其他有意义的名称或者直接返回整个table数据
+   ```
+
+   ***将方法导出的目的是为了其它`Lua`文件可以使用这个函数***，起到了模块化编程的作用。
+
+> * 这个工具将`read_http`函数封装到**_M**这个**table类型**的变量中，并且返回，这类似于导出。使用的时候，可以利用`require('common')`来导入该函数库，这里的common是函数库的文件名。
+> * lua的工具函数库都存放在`/usr/local/openresty/lualib`路径下。
+
+##### 8.4.3.3.实现商品查询
+
+修改`/usr/local/openresty/lua/item.lua`文件，利用刚刚封装的函数库实现对`tomcat`的查询。其中，通过封装的工具`read_http`查询出的数据为`JSON`格式，要对商品信息和库存信息进行拼接同时返回需要反序列化成`lua`的`table`格式。`OpenResty`提供了一个`cjson`的模块来处理`JSON`的**序列化**和**反序列化**。
+
+>`cjson`模块的使用方法：
+>
+>* 引入cjson模块
+>
+>  ```lua
+>  local cjson = require('cjson')
+>  ```
+>
+>* 序列化（`encode`）
+>
+>  ```lua
+>  local obj = {
+>      name = 'jack',
+>      age = 21
+>  }
+>  local json = cjson.encode(obj)
+>  ```
+>
+>* 反序列化（`decode`）
+>
+>  ```lua
+>  local json = '{"name":"jack","age":21}'
+>  local obj = cjson.decode(json)
+>  print(obj.name)
+>  ```
+
+完整的`item.lua`代码
+
+```lua
+-- 导入刚刚封装的common.lua函数库
+local common = require('common')
+--导入cjson库
+local cjson = require('cjson')
+
+-- 获取库文件中的read_http函数
+local read_http = common.read_http
+
+-- 获取路径参数
+local id = ngx.var[1]
+
+-- 查询商品信息
+local itemJSON = read_http("/item/" .. id, nil)
+-- 查询库存信息
+local stockJSON = read_http("/item/stock/" .. id, nil)
+
+-- JSON转化为lua的table
+local item = cjson.decode(itemJSON)
+local stock = cjson.decode(stockJSON)
+
+-- 组合数据（item中有stock里面的key，只是值为空）
+item.stock = stock.stock
+item.sold = stock.sold
+
+-- 把table序列化为JSON 
+-- 返回结果
+ngx.say(cjson.encode(item))
+```
+
+#### 8.4.4.Tomcat集群负载均衡（基于请求路径）
+
+`OpenResty`对`Tomcat`集群负载均衡的默认策略是**轮询模式**。当查询`/item/10001`时假设访问的是`8081`端口/节点的`Tomcat`服务，查询完成会在该服务器内部建立`JVM`缓存，而当第二次查询时，由于是轮询所以会去访问其他端口/节点的服务，而其他服务器内部没有该商品的`JVM`缓存，需要查询数据库，**导致之前的`JVM`缓存失效，并且在多个服务器建立冗余的缓存。**
+
+如果能让同一个商品，每次查询时都访问同一个Tomcat服务器，那么JVM缓存就一定能生效。
+
+也就是说，我们需要根据请求路径（商品id）做负载均衡，而不是轮询。
+
+___
+
+**解决办法**
+
+`Nginx`提供了**基于请求路径做负载均衡的算法**
+
+**`Nginx`根据请求路径做`hash`运算，把得到的数值对`Tomcat`服务的数量取余，余数是几，就访问第几个服务，实现负载均衡。**只要id不变，每次`Hash`运算结果也不会变，那就可以保证同一个商品，一直访问同一个`Tomcat`服务，确保`JVM`缓存生效。
+
+修改Linux上`OpenResty`的`Nginx`配置文件`/usr/local/openresty/nginx/conf/nginx.conf`
+
+定义`Tomcat`集群，并设置基于路径做负载均衡
+
+```nginx
+# tomcat集群配置
+upstream tomcat-cluster {
+    hash $request_uri; # 设置负载均衡策略
+    server tomcat服务器1的IP:端口号;
+    server tomcat服务器2的IP:端口号;
+}
+```
+
+然后，修改对`Tomcat`服务的反向代理，目标指向`Tomcat`集群
+
+```nginx
+server {
+    # ...
+    
+    # 反向代理配置，将/item路径的请求代理到Tomcat集群
+    location /item {
+    	proxy_pass http://tomcat-cluster;
+    }
+    
+    # ...
+}
+```
+
+由此，实现了**基于请求路径的负载均衡**。
+
+#### 8.4.5.添加Redis缓存的需求
+
+请求到达`OpenResty`后不应该直接查询`Tomcat`，而是优先查询Redis，Redis缓存未命中，再去查询`Tomcat`。
+
+![](./images/Java/Snipaste_2025-10-13_19-16-48.png)
+
+___
+
+添加Redis缓存会面临以下两个问题：
+
+* **冷启动**：服务刚刚启动时，Redis中并没有缓存，如果所有商品数据都在第一次查询时添加缓存，可能会给数据库带来较大压力。
+* **缓存预热**：在实际开发中，我们可以利用大数据统计用户访问的热点数据，在项目启动时将这些热点数据提前查询并保存到Redis中。
+
+本次项目中的数据较少，因此不需要大数据统计，直接将所有数据都放入到Redis缓存中。
+
+##### 8.4.5.1.缓存预热
+
+1. 利用docker安装Redis
+
+2. 在项目中引入Redis依赖
+
+   ```xml
+   <dependency>
+       <groupId>org.springframework.boot</groupId>
+       <artifactId>spring-boot-starter-data-redis</artifactId>
+   </dependency>
+   ```
+
+3. 配置Redis地址，这里使用的是分片集群
+
+   ```yaml
+   spring:
+     redis:
+       cluster:
+         nodes:
+           - 100.74.164.16:7001
+   		# ......
+           - 100.74.164.16:7006
+   ```
+
+4. 编写初始化类
+
+   缓存预热需要在项目启动时完成，并且必须是拿到`RedisTemplate`之后（*才能将查到的数据存储到Redis中*）
+
+   这里使用`InitializingBean`接口来实现，该接口定义了一个方法`afterPropertiesSet()`，**该方法在Bean的所有属性被Spring容器设置之后自动被调用**。这允许开发者在Bean的初始化阶段执行一些必要的操作，如检查配置的正确性、初始化资源、建立数据库连接等。
+
+   ```java
+   @Component
+   public class RedisHandler implements InitializingBean {
+       @Autowired
+       private StringRedisTemplate stringRedisTemplate;
+       @Autowired
+       private IItemService iItemService;
+       @Autowired
+       private IItemStockService iItemStockService;
+       
+       private final ObjectMapper objectMapper = new ObjectMapper();
+       
+       @Override
+       public void afterPropertiesSet() throws Exception {
+           //初始化缓存
+           //1、查询数据库
+           List<Item> itemList = iItemService.list();
+           List<ItemStock> stockList = iItemStockService.list();
+   
+           //2、存入redis
+           for (Item item : itemList) {
+               //将item对象序列化为JSON字符串
+               String itemJson = objectMapper.writeValueAsString(item);
+               stringRedisTemplate.opsForValue().set("item:id"+item.getId(),itemJson);
+           }
+           for (ItemStock itemStock : stockList) {
+               //将itemStock对象序列化为JSON字符串
+               String stockJson = objectMapper.writeValueAsString(itemStock);
+               stringRedisTemplate.opsForValue()
+                   .set("item:stock:id"+itemStock.getId(),stockJson);
+           }
+       }
+   }
+   ```
+
+   > `ObjectMapper`是Jackson库中的一个核心类，它提供了Java对象和JSON数据之间转换的功能。
+   >
+   > * **序列化**：`writeValueAsString("xxx")`
+   > * **反序列化**：`readValue("xxx")`
+
+##### 8.4.5.2.OpenResty的Redis模块
+
+项目启动后，自动将Redis缓存进行预热，此时只需`OpenResty`直接请求访问`Redis`即可。`OpenResty`提供了操作`Redis`的模块，我们只要引入该模块就能直接使用
+
+* 引入Redis模块，并初始化Redis对象
+
+  ```lua
+  -- 引入redis模块
+  local redis = require("resty.redis")
+  -- 初始化Redis对象
+  local red = redis:new() -- 通过 : 调用方法
+  -- 设置Redis超时时间
+  red:set_timeouts(1000, 1000, 1000)
+  ```
+
+* 封装函数，**用来释放Redis连接**，其实是放入连接池。Redis的连接是TCP连接，建立TCP连接需要三次握手，而释放TCP连接需要四次握手，耗时较长，应该将该TCP连接放入连接池进行复用
+
+  ```lua
+  -- 关闭Redis连接的工具方法，其实是放入连接池
+  local function close_redis(red)
+      if not red then
+          return
+      end
+      --释放连接(连接池实现)  
+      local pool_max_idle_time = 10000 -- 连接的空闲时间(ms)，超过该时间未使用则断开连接
+      local poo_size = 100 -- 连接池大小
+      local ok, err = red:set_keepalive(pool_idle_time, pool_size)
+      if not ok then
+          ngx.log(ngx.ERR, "放入Redis连接池失败:", err) -- 将连接放回连接池中
+      end
+  end
+  ```
+
+* 封装函数，**从Redis读数据并返回**
+
+  ```lua
+  -- 查询Redis的方法 ip和port是Redis地址，key是查询的key
+  local function read_redis(ip, port, key)
+      -- 获取一个连接
+      local ok, err = red:connect(ip, port)
+      if not ok then
+          ngx.log(ngx.ERR, "连接Redis失败:", err)
+          return nil
+      end
+      
+      -- 连接成功后，若有密码需要验证
+      -- ok, err = red:auth("password")
+      
+      -- 查询Redis
+      local resp, err = red:get(key)
+      -- 查询失败处理
+      if not resp then
+          ngx.log(ngx.ERR, "查询Redis失败: ", err, ", key = ", key)
+      end
+      -- 得到的数据为空处理
+      if resp == ngx.null then
+          resp = nil
+          ngx.log(ngx.ERR, "查询Redis数据为空, key = ", key)
+      end
+      close_redis(red)
+      return resp
+  end
+  ```
+
+#### 8.4.6.Nginx本地缓存
+
+![](./images/java/2024-12-2721_28_27.png)
+
+`OpenResty`为`Nginx`提供了`shard dict`（*共享字典*）的功能，可以在`Nginx`的多个`worker`之间共享数据，实现缓存功能。（*仅在一个`Nginx`节点上的内部共享，不能在`Nginx`集群上共享*）
+
+> 在`Nginx`中，往往存在1个master进程和多个worker进程；master进程用来管理进程，不处理客户端请求；worker进程可以用来处理请求。
+
+* **开启共享字典**，在`nginx.conf`的`http`下添加配置
+
+  ```nginx
+  # 共享字典，也就是本地缓存，名称叫做：item_cache，大小150M
+  lua_shared_dict item_cache 150m;
+  ```
+
+* **操作字典**
+
+  ```lua
+  -- 获取本地缓存对象
+  local item_cache = ngx.shared.item_cache
+  -- 存储，指定key、value、过期时间，单位s，默认为0代表永不过期
+  item_cache:set('key', 'value', 1000)
+  -- 读取
+  local val = item_cache:get('key')
+  ```
+
+
+#### 8.4.7.缓存同步
+
+大多数情况下，浏览器查询到的都是缓存数据，如果缓存数据与数据库数据存在较大差异，可能会产生比较严重的后果。
+
+所以**必须保证数据库数据、缓存数据的一致性，这就是缓存与数据库的同步**。
+
+##### 8.4.7.1.数据同步策略
+
+缓存数据同步的常见方式有三种：
+
+* **设置有效期**：给缓存设置有效期，到期后自动删除。再次查询时更新
+  * 优势：简单、方便
+  * 缺点：时效性差，缓存过期之前可能不一致（*数据库发生更新，但由于缓存未过期，数据不会主动更新*）
+  * 场景：更新评率较低，时效性要求低的业务
+* **同步双写**：在修改数据库的同时，直接修改缓存
+  * 优势：时效性强，缓存与数据库强一致
+  * 缺点：有代码侵入，耦合度高（*如：缓存修改失败可能会导致数据库修改回退等*）
+  * 场景：对一致性、时效性要求较高的缓存数据
+* **异步通知**：修改数据库时发送事件通知，相关服务监听到通知后修改缓存数据（*如使用`MQ`进行通知*）
+  * 优势：耦合度低，可以同时通知多个缓存服务
+  * 缺点：时效性一般，可能存在中间不一致状态
+  * 场景：时效性要求一般，有多个服务需要同步
+
+___
+
+**基于MQ的异步通知**
+
+<img src="./images/Java/Snipaste_2025-10-15_20-54-37.png" style="zoom: 80%;" />
+
+**基于Canal的异步通知**
+
+`Canal`可以监听数据库中的变化，0侵入，没有任何耦合，时效性更强。
+
+<img src="./images/java/Snipaste_2025-10-15_20-52-18.png" style="zoom:80%;" />
+
+##### 8.4.7.2.初始Canal
+
+**Canal**是阿里巴巴旗下的一款开源项目，基于Java开发。**基于数据库增量日志解析，提供增量数据订阅&消费**。GitHub网址：https://github.com/alibaba/canal
+
+Canal是基于MySQL的主从同步来实现的，**MySQL主从同步的原理**如下
+
+* MySQL master 将数据变更（*增删改*）写入二进制日志（binary log），其中记录的数据叫做二进制日志事件 binary log events
+* MySQL slave 将master的 binary log events 拷贝到它的中继日志（relay log）
+* MySQL slave 重放 relay log 中事件，将数据变更反映它自己的数据
+
+<img src="./images/java/2024-12-2723_01_28.png" style="zoom:67%;" />
+
+**Canal工作原理**
+
+* canal 模拟 MySQL slave 的交互协议，伪装自己为 MySQL slave ，向 MySQL master 发送 dump 协议
+* MySQL master 收到 dump 请求，开始推送 binary log 给 slave (即 canal )
+* canal 解析 binary log 对象(原始为 byte 流)
+
+即：**Canal就是把自己伪装成MySQL的一个slave节点，从而监听master的binary log变化。再把得到的变化信息通知给Canal的客户端，进而完成对其它数据库的同步。**
+
+<img src="./images/java/Snipaste_2025-10-15_21-35-09.png" style="zoom:67%;" />
+
+___
+
+**使用Canal之前，需要在MySQL中开启主从同步功能**
+
+修改文件
+
+```bash
+vim /application/mysql/conf/my.cnf
+```
+
+添加内容
+
+```bash
+log-bin=/var/lib/mysql/mysql-bin
+binlog-do-db=heima
+```
+
+* `log-bin=/var/lib/mysql/mysql-bin`：设置binary log文件的存放地址和文件名，叫做mysql-bin
+* `binlog-do-db=heima`：指定对哪个database记录binary log events，这里记录`heima`这个库
+
+接下来添加一个仅用于数据同步的账户，出于安全考虑，这里仅提供对heima这个库的操作权限
+
+```mysql
+create user canal@'%' IDENTIFIED by 'canal'; # identified by用来设置用户登录密码
+GRANT SELECT, REPLICATION SLAVE, REPLICATION CLIENT, SUPER ON *.* TO 'canal'@'%';
+FLUSH PRIVILEGES;
+```
+
+重启mysql容器
+
+```bash
+docker restart mysql
+```
+
+测试设置是否成功：在mysql控制台输入命令
+
+```mysql
+show master status;
+```
+
+##### 8.4.7.3.安装Canal
+
+**创建网络**：需要创建一个docker网络，将MySQL、Canal、MQ放到同一个docker网络中
+
+```bash
+docker network create 
+```
+
+**让MySQL加入到这个网络中**
+
+```bash
+docker network connect heima mysql
+```
+
+**拉取Canal镜像**
+
+```bash
+docker pull canal/canal-server:v1.1.5
+```
+
+创建并启动Canal容器
+
+```bash
+docker run -d \
+  --name canal \
+  -p 11111:11111 \
+  -p 11110:11110 \
+  -p 11112:11112 \
+  --network heima \
+  -e canal.destinations=heima \
+  -e canal.instance.master.address=mysql:3306 \
+  -e canal.instance.dbUsername=canal \
+  -e canal.instance.dbPassword=canal \
+  -e canal.instance.connectionCharset=UTF-8 \
+  -e canal.instance.tsdb.enable=true \
+  -e canal.instance.gtidon=false \
+  -e canal.instance.filter.regex=heima\\..* \
+  -v /application/canal/conf:/home/admin/canal-server/conf \
+  -v /application/canal/logs:/home/admin/canal-server/logs \
+  canal/canal-server:v1.1.5
+```
+
+* `-p 11111:11111`：这是Canal的默认监听端口（*canal server端口*）
+* `-p 11110:11110`：Canal Admin端口
+* `-p 11112:11112`：Canal Metrics端口
+* `-e canal.instance.master.address=mysql:3306`：数据库地址和端口（*这里和MySQL在同一网络中，可以使用容器名代替ip地址*）
+* `-e canal.instance.dbUsername=canal`：数据库用户名（*上面已专门创建一个用户*）
+* `-e canal.instance.dbPassword=canal`：数据库密码
+* `-e canal.instance.filter.regex=`：要监听的表名称
+
+> mysql 数据解析关注的表，Perl正则表达式. 
+>
+> 多个正则之间以逗号(,)分隔，转义符需要双斜杠(\\)  
+>
+> 常见例子： 
+>
+> 1. 所有表：`.*`   or  `.*\\..*`
+> 2. canal schema下所有表： `canal\\..*` 
+> 3. canal下的以canal打头的表：`canal\\.canal.*`
+> 4. canal schema下的一张表：`canal.test1`
+> 5. 多个规则组合使用然后以逗号隔开：`canal\\..*,mysql.test1,mysql.test2` 
+
+8.4.7.4.监听Canal
+
+Canal提供了各种语言的客户端，当Canal监听到binlog变化时，会通知Canal的客户端。利用Canal提供的Java客户端，监听Canal通知消息。当收到变化的消息时，完成对缓存的更新。
+
+![](./images/java/2024-12-2723_19_34.png)
+
+对于`springboot`项目，GitHub上的第三方开源的[canal-starter](https://github.com/NormanGyllenhaal/canal-client)与`SpringBoot`完美整合，自动装配，比官方客户端要简单好用很多。
+
+1. 引入依赖
+
+   ```xml
+   <dependency>
+       <groupId>top.javatool</groupId>
+       <artifactId>canal-spring-boot-starter</artifactId>
+       <version>1.2.1-RELEASE</version>
+   </dependency>
+   ```
+
+2. 编写配置
+
+   ```yaml
+   canal:
+     destination: heima # canal实例名称，要跟canal-server运行时设置的destination一致
+     server: 100.74.164.16:11111 # canal地址
+   ```
+
+3. 编写监听器，监听Canal消息
+
+   ```java
+   @CanalTable("tb_item") // 指定要监听的表
+   @Component
+   public class ItemHandler implements EntryHandler<Item>{ // 指定表关联的实体类
+       //监听到数据库的 增、删、改 的消息时，执行以下方法
+       
+       @Override
+       public void insert(Item item){
+           //新增数据到Redis
+           //新增数据到JVM
+       }
+       @Override
+       public void update(Item before, Item after){
+           //更新Redis数据
+           //更新本地JVM缓存
+       }
+       @Override
+       public void delete(Item item){
+           //删除Redis数据
+           //清理本地JVM缓存
+       }
+   }
+   ```
+
+   Canal推送给`canal-client`的是**被修改的这一行数据**（row），而我们引入的`canal-client`则会**帮我们把行数据封装到Item实体类中**。这个过程中需要知道**数据与实体的映射关系**，需要用到`JPA`的几个注解，用来说明实体类和表中字段的映射关系。
+
+   ![](./images/java/Snipaste_2025-10-21_16-23-22.png)
+
+   * ***当实体类中的属性名与表中的字段名一致时，可以不用加任何注解。***
+
+### 8.5.多级缓存总结
+
+![](./images/Java/Snipaste_2025-10-22_13-03-53.png)
+
+> 其中，`hash $request_uri`表示基于请求路径作负载均衡，使同一访问路径到达相同集群节点，确保本地缓存生效。
+
+## 9.Redis最佳实践
+
+### 9.1.Redis键值设计
+
+#### 9.1.1.Key的最佳实践
+
+Redis的Key虽然可以自定义，但最好遵循下面的几个最佳实践约定：
+
+* 遵循基本格式：**[业务名称]:[数据名]:[id]**
+* Key长度不超过44字节
+* 不包含特殊字符
+
+例如：我们的登录业务，保存用户信息，其Key是这样的
+
+![](./images/java/Snipaste_2025-10-22_13-17-43.png)
+
+**优点**
+
+* 可读性强
+* 避免Key冲突
+* 方便管理（*使用`:`隔开，在Redis客户端中会进行层级管理*）
+* 更节省内存：key是String类型，底层编码包含`int`、`embstr`和`raw`*（使用不连续的内存空间）*三种。`embstr`在小于44字节使用，采用连续内存空间，内存占用更小。
+
+> 通过`OBJECT ENCODING <key>`命令可以查看一个Key对应的value的编码
+
+#### 9.1.2.拒绝BigKey
+
+**什么是`BigKey`？**就是指一个Key对应的Value所占用的内存空间**非常大**。
+
+`BigKey`通常以**Key对应的Value大小和Value中成员的数量**来综合判定，例如：*（以下都是指Value*）
+
+- Key本身的数据量过大：一个String类型的Key，它的值为5 MB。
+- Key中的成员数过多：一个`ZSET`类型的Key，它的成员数量为10,000个。
+- Key中成员的数据量过大：一个Hash类型的Key，它的成员数量虽然只有1,000个但这些成员的Value（值）总大小为100 MB。
+
+**推荐值**
+
+* 单个key的value小于10KB
+* 对于集合类型的Key，主要以元素数量来衡量，建议元素数量小于1000
+
+#### 9.1.3.BigKey的危害
+
+* **网络阻塞**
+  * 对`BigKey`执行读请求时，少量的`QPS`*（服务器在单位时间内处理的查询请求数量）*就可能导致带宽使用率被占满，导致Redis实例，乃至所在物理机变慢。
+* **数据倾斜**
+  * Redis集群模式下，BigKey所在的Redis节点内存使用率会远超其他节点，无法实现数据的均匀分布。
+* **Redis阻塞**
+  * 对元素较多的hash、list、zset等做运算会耗时较久，使主线程被阻塞。删除一个Bigkey（例如一个包含百万元素的Hash）会导致Redis**长时间阻塞**，期间，Redis无法处理其他请求。
+* **CPU压力**
+  * 对BigKey的数据序列化和反序列化会导致CPU的使用率飙升，影响Redis实例和本机其他应用。
+
+##### 9.1.3.1.如何发现BigKey
+
+* **`redis-cli-bigkeys`**
+  * 利用`redis-cli`提供的`--bigkeys`参数，可以遍历分析所有key，并返回Key的整体统计信息与每个数据的Top 1的big key
+* **scan扫描**
+  * 自己编程，利用scan扫描Redis中的所有Key*（一次只返回一部分，需要执行多次*），利用`strlen`、`hlen`等命令判断Key的长度（不建议使用MEMORY USAGE，会大量消耗CPU）
+  * *不建议直接使用`keys *`扫描所有Key，会阻塞主线程，影响后续的读写操作。*
+* **第三方工具**
+  * 利用第三方工具，如`Redis-Rdb-Tools`分析`RDB`快照文件，全面分析内存使用情况。
+* **网络监控**
+  * 自定义工具，监控进出Redis的网络数据，超出预警值时主动告警。
+
+##### 9.1.3.2.如何删除BigKey
+
+在找到BigKey后，应该将BigKey的数据进行拆分，重新存储，之后再删除该Key。
+
+`BigKey`内存占用较多，即便是删除这样的Key也需要耗费很长时间，**导致Redis主线程阻塞**，引发一系列问题。
+
+* **Redis3.0**以下版本
+  * 如果是集合类型，则遍历`BigKey`的元素，先逐个删除子元素*（如使用`HDEL`删除Key中字段）*，最后删除`BigKey`
+* **Redis4.0**以后
+  * Redis在4.0后提供了异步删除的命令：`unlink`。与`DEL`命令不同，`unlink`命令不会立即释放与键相关联的内存，而是将键的删除操作放入后台线程中异步执行，从而避免在删除大量键时对Redis的主线程造成阻塞。
+
+#### 9.1.4.恰当的数据类型
+
+**例1**：比如存储一个User对象，有三种存储方式
+
+方式一：json字符串
+
+![](./images/java/Snipaste_2025-10-22_15-20-45.png)
+
+* 优点：实现简单粗暴
+* 缺点：数据耦合，不够灵活
+
+方式二：字段打散
+
+![](./images/java/Snipaste_2025-10-22_15-22-03.png)
+
+* 优点：可以灵活访问对象任意字段
+* 缺点：占用空间大，没办法做到统一控制
+
+方式三：hash
+
+![](./images/java/Snipaste_2025-10-22_15-23-27.png)
+
+* 优点：底层使用`ziplist`，空间占用小，可以灵活访问对象的任意字段
+* 缺点：代码相对复杂
+
+___
+
+**例2**：假如有hash类型的Key，其中有100万对field和value，field是自增id，这个key存在什么问题？如何优化？
+
+![](./images/java/Snipaste_2025-10-22_15-30-12.png)
+
+存在的问题：
+
+* hash的entry（字段）数量超过500时，会使用哈希表而不是zipList，内存占用较多。
+* 可以通过`hash-max-ziplist-entries`配置entry上限。但是如果entry过多（超过1000等）会导致`BigKey`问题。
+
+方案二：拆分为string类型
+
+将hash中的每个field作为Key，value作为Value存储到Redis中。
+
+存在的问题：
+
+* string结构底层没有太多内存优化，内存占用较多
+* 想要批量获取这些数据比较麻烦
+
+方案三：拆分为小的hash，将`id/100`作为key，将`id%100`作为field，这样每100个元素作为一个Hash
+
+<img src="./images/java/Snipaste_2025-10-22_15-50-30.png" style="zoom: 67%;" />
+
+#### 9.1.5.总结
+
+**Key的最佳实践**：
+
+* 固定格式：[业务名]:[数据名]:[id]
+* 足够简短：不超过44字节
+* 不包含特殊字符
+
+**Value的最佳实践**：
+
+* 合理的拆分数据，拒绝BigKey
+* 选择合适数据结构
+* Hash结构的entry数量不要超过1000*（默认不超过500）*
+* 设置合理的超时时间
+
+### 9.2.批处理优化
+
+**单个命令的执行流程**
+
+一次命令的响应时间=1次往返的网络传输耗时+1次Redis执行命令耗时
+
+<img src="./images/java/Snipaste_2025-10-23_14-08-45.png" style="zoom:67%;" />
+
+***由于执行命令时间与网络传输时间相差很多数量级，因此在整个响应过程中，执行命令时间几乎可以忽略不计。因此命令响应时间主要由网络传输时间决定。***
+
+**N个命令的执行流程**
+
+N次命令的响应时间=N次往返的网络传输耗时+N次Redis执行命令耗时
+
+<img src="./images/java/Snipaste_2025-10-23_14-07-45.png" style="zoom:67%;" />
+
+***N条命令一次一次执行会消耗更多的时间***
+
+___
+
+**因此，我们需要N条命令批量执行**：N条命令的响应时间=1次往返的网络传输耗时+N次Redis执行命令耗时
+
+Redis提供了很多`Mxxx`这样的命令，可以实现批量插入数据，例如：
+
+* `mset`：处理String类型
+* `hmset`：处理Hash类型，批处理时，Key不能变，只能是field变化。
+
+利用`mset`批量插入10万条数据：
+
+```java
+@Test
+void testMxx(){
+    String[] arr = new String[2000]; // 每次插入1000对键值对，避免单次传输太多命令占用带宽过多
+    int j;
+    // jedis使用mset参数要求键和值在数组相邻
+    for(int i = 1;i <= 100000; i++){
+        j = (i % 1000) << 1; // j的二进制最后一位永远是0，即j是偶数，且0<=j<=1999
+        arr[j] = "test:key_" + i; // 偶数位
+        arr[j+1] = "value_" + i; // 奇数位
+        if(j == 0){
+            jedis.mset(arr);
+        }
+    }
+}
+```
+
+> **注意**：不要在一次批处理中传输太多命令，否则单次命令占用带宽过多，会导致网络阻塞。
+
+#### 9.2.1.Pipeline（单机模式下）
+
+`MSET`虽然可以批处理，但是却只能操作部分数据类型，因此如果有对复杂数据类型的批处理需求，建议使用`Pipeline`功能。使用`Pipeline`可以添加对任意数据类型操作的命令，十分灵活。
+
+`Pipeline`允许客户端将多个命令一次性发送到Redis服务器，而不是逐个发送命令并等待响应。这种方式显著减少了网络延迟和通信开销，从而提高了命令的执行效率。
+
+___
+
+**大致工作流程如下：**
+
+1. 客户端创建一个Pipeline对象，并向其中添加需要执行的命令。
+2. 客户端将所有命令一次性发送到Redis服务器。
+3. 由于**Redis是单线程执行命令**，Redis服务器接收到命令后，会对命令进行**排队**，依次执行这些命令，并将每个命令的结果存储起来。
+4. 客户端等待所有命令执行完成后，从服务器获取结果并按照命令发送的顺序进行处理。
+
+例如，使用Jedis的Pipeline功能，批量处理100000条数据。
+
+```java
+@Test
+void testPipeline() {
+    // 创建管道
+    Pipeline pipeline = jedis.pipelined();
+    long b = System.currentTimeMillis();
+    for (int i = 1; i <= 100000; i++) {
+        // 放入命令到管道
+        pipeline.set("test:key_" + i, "value_" + i);
+        // pipeline.hset(...) 添加操作Hash数据类型的命令
+        if (i % 1000 == 0) {
+            // 每放入1000条命令，批量执行
+            pipeline.sync();
+        }
+    }
+    long e = System.currentTimeMillis();
+    System.out.println("time: " + (e - b));
+}
+```
+
+> **注意**：
+>
+> * `Pipeline`中的命令**不具备原子性**，如果其中一个命令失败，不影响其它命令的执行。
+> * 使用`Pipeline`时，应该避免一次性发送过多命令，以免造成服务器阻塞，影响其他客户的请求。
+
+___
+
+在Spring Data Redis中也封装了对Pipeline的使用方法。`executePipelined` 是 Spring Data Redis 提供的一个方法，用于执行 Redis 的 Pipeline 操作。
+
+在 Spring Data Redis 中，`executePipelined` 方法被定义在 `RedisTemplate` 类中。该方法接受一个`RedisCallback<List<Object>>` 类型的参数，这个参数是一个回调接口，用于定义要在 Redis 上执行的命令。在回调接口的 `doInRedis` 方法中，可以使用 `RedisConnection` 来执行任意数量的 Redis 命令。这些命令会被打包成一个 Pipeline 请求发送到 Redis 服务器。
+
+`executePipelined` 方法的返回值是一个 `List<Object>`，包含了所有命令的执行结果。这些结果的顺序与你在 `doInRedis` 方法中执行命令的顺序是一致的。
+
+具体的调用参考：[Redis Template Pipeline 管道使用](https://blog.csdn.net/qq_39363204/article/details/125665896)
+
+##### 9.2.1.1.总结
+
+**批处理的方案**
+
+* 原生的M操作*（如，`mset`，`mhset`等）*
+* Pipeline批处理
+
+**注意事项**
+
+* 批处理时不建议一次携带太多命令。
+* Pipeline的多个命令之间不具备原子性。
+
+#### 9.2.2.集群下的批处理
+
+如`MSET`或`Pipeline`这样的批处理需要在一次请求中携带多条命令，而此时如果Redis是一个集群*（分片集群）*，那**批处理命令的多个Key必须落在一个插槽中**，否则就会导致执行失败。
+
+> **分析其原因**
+>
+> * 一个`Pipeline`请求在传输层面只能被发送到一个节点。如果Keys不在同一插槽，就意味着它们可能分布在不同的节点上，**单个节点无法执行其他节点上的命令**。
+> * `Pipeline`的主要目的是减少网络延迟和开销。如果`pipeline`中的命令需要跨多个节点执行，那么每个节点都需要处理并响应这些命令，这会增加网络延迟和处理的复杂度。
+
+___
+
+**四种解决方案**
+
+|   实现思路   |           串行命令            |                       串行slot（插槽）                       |                           并行slot                           |                       hash_tag                       |
+| :----------: | :---------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: | :--------------------------------------------------: |
+| **实现思路** | for循环遍历，依次执行每个命令 | 在客户端计算每个key的slot，将slot一致分为一组，每组都利用Pipeline批处理。<br>**串行**执行各组命令 | 在客户端计算每个key的slot，将slot一致分为一组，每组都利用Pipeline批处理。<br>开启多个线程**并行**执行各组命令 | 将所有key设置相同的hash_tag，则所有key的slot一定相同 |
+|   **耗时**   |   N次网络耗时 + N次命令耗时   |      m次网络耗时 + N次命令耗时       m = key的slot个数       |                  1次网络耗时 + N次命令耗时                   |              1次网络耗时 + N次命令耗时               |
+|   **优点**   |           实现简单            |                           耗时较短                           |                          耗时非常短                          |                 耗时非常短、实现简单                 |
+|   **缺点**   |          耗时非常久           |                          实现稍复杂                          |                           实现复杂                           |                   容易出现数据倾斜                   |
+
+**综合考虑下，使用并行slot处理较为合理**
+
+___
+
+Spring Data Redis在集群环境下的`mset`、`hmset`等命令已经**实现了并行slot**，解决了集群模式下的批处理问题。
+
+相关测试代码
+
+```java
+@Test
+ void testMSetInCluster() {
+     Map<String, String> map = new HashMap<>(3);
+     map.put("name", "Rose");
+     map.put("age", "21");
+     map.put("sex", "Female");
+     stringRedisTemplate.opsForValue().multiSet(map);
+
+
+     List<String> strings = stringRedisTemplate.opsForValue().multiGet(Arrays.asList("name", "age", "sex"));
+     strings.forEach(System.out::println);
+
+ }
+```
+
+在`RedisAdvancedClusterAsyncCommandsImpl`类中
+
+首先根据`slotHash`算出来一个`partitioned`的`map`，`map`中的key就是slot，而他的value就是对应的对应相同slot的key对应的数据
+
+通过`RedisFuturemset = super.mset(op);`进行异步的消息发送
+
+### 9.3.服务端优化
+
+#### 9.3.1.持久化配置
+
+Redis持久化虽然可以保证数据安全，但也会带来很多额外的开销，因此持久化**应该遵循下列建议**：
+
+* 用来做缓存的Redis实例尽量不要开启持久化功能。
+
+* 建议关闭`RDB`持久化功能，使用`AOF`持久化*（`AOF`数据时效性和安全性更好）*
+
+  ```properties
+  # 在redis.conf文件中
+  
+  # 关闭RDB持久化
+  # save 900 1
+  # save 300 10
+  # save 60 10000
+  
+  # 开启AOF持久化
+  appendonly yes
+  
+  # 设置AOF同步频率
+  appendfsync everysec
+  ```
+
+* 利用脚本定期在slave节点做`RDB`，实现**数据备份**。频繁的`RDB` `fork`操作耗时较久，涉及大量磁盘IO，对性能影响较大。
+
+* 设置合理的`rewrite`阈值，避免频繁对`AOF`文件做`bgrewrite`。*（`bgrewrite`对CPU和磁盘占用较高）*
+
+  ```properties
+  # redis会记录上一次bgrewrite时的文件大小，当AOF文件大小超过上次文件大小指定的百分比后，会触发bgrewrite机制
+  auto-aof-rewrite-percentage 100
+  # 自动触发bgrewrite命令时AOF文件的最小容量
+  auto-aof-rewrite-min-size 64mb
+  ```
+
+* 配置`no-appendfsync-on-rewrite = yes`，禁止在rewrite期间做`AOF`，避免因`AOF`引起的阻塞。
+
+  *在执行`bgrewrite`时对CPU和磁盘的占用较高，且这个过程持续时间较长，而`AOF`默认的同步刷盘频率是每秒执行一次。在开启`AOF`机制后，主线程执行完一条命令后，要判断当前的刷盘时间是否小于2秒，若超过两秒会阻塞等待刷盘操作完成。在执行`bgrewrite`期间肯定会影响到`AOF`的刷盘效率，可能进一步导致主线程阻塞。在设置了`no-appendfsync-on-rewrite = yes`后，Redis若发现当前在做`bgrewrite`，就不会做`AOF`同步，主线程执行完命令直接返回。但由于在此期间没有做`AOF`持久化，可能出现数据丢失的问题。*
+
+  *是否开启 在`bgrewrite`期间禁止做`AOF`同步，要视业务需求而定，若追求数据的安全，则设置为no，若追求的是性能，则开启。*
+
+  <img src="./images/java/2024-12-3010_34_05.png" style="zoom:67%;" />
+
+**部署有关建议**：
+
+* Redis实例的物理机要预留足够内存，应对`fork`和`rewrite`
+* 单个Redis实例内存上限不要太大，例如4 G或8 G。可以加快fork的速度、减少主从同步、数据迁移压力。
+* 不要与CPU密集型应用部署在一起。
+* 不要与高硬盘负载应用一起部署。例如：数据库、消息队列。
+
+#### 9.3.2.慢查询
+
+在Redis执行时耗时超过某个阈值的**命令**，称为**慢查询**。
+
+**慢查询的危害**：由于Redis是单线程的，所以当客户端发出指令后，他们都会进入到redis底层的queue来执行，如果此时有一些慢查询的数据，就会导致大量请求阻塞，从而引起报错。
+
+<img src="./images/java/2024-12-3010_52_29.png" style="zoom: 67%;" />
+
+___
+
+**慢查询的阈值可以通过配置指定**：
+
+* `slowlog-log-slower-than`：慢查询阈值，**单位是微秒**。默认时10000，建议1000。
+
+  慢查询会被放入慢查询日志中。
+
+日志的长度有上限，**可以通过配置指定**：
+
+* `slowlog-max-len`：慢查询日志（本质是一个队列）的长度。默认是128，建议1000。
+
+动态**操作相关命令** *（Redis重启后该配置失效）*
+
+```bash
+# 获取这两个配置的值
+config get slowlog-log-slower-than
+config get slowlog-max-len
+# 修改这两个值
+config set slowlog-log-slower-than
+config set slowlog-max-len
+```
+
+> ***也可以直接修改配置文件`redis.conf`永久生效***
+
+**查看慢查询日志列表**：
+
+* `slowlog len`：查询慢查询日志长度
+* `slowlog get [n]`：读取n条慢查询日志
+* `slowlog reset`：清空慢查询列表
+
+<img src="./images/java/Snipaste_2025-10-23_21-21-16.png" style="zoom: 80%;" />
+
+#### 9.3.3.命令及安全配置
+
+Redis会绑定在`0.0.0.0:6379`，这样将会将Redis服务暴露到公网上，而**Redis如果没有做身份认证**，会出现严重的安全漏洞。如果在没有开启认证的情况下，可以导致任意用户在可以访问目标服务器的情况下未授权访问Redis以及读取Redis的数据。**攻击者在未授权访问Redis的情况下可以利用Redis的相关方法，可以成功在Redis服务器上写入公钥，进而可以使用对应私钥直接登录目标服务器**而不用输入服务器登录密码。
+
+> `0.0.0.0`这个`IP`核心思想表示**所有**或**任意**，**当服务器程序绑定到 `0.0.0.0` 时**，它是在告诉操作系统：“**不要只监听某一个特定的网卡，请在我这台服务器【所有】的 `IP` 地址上进行监听。**”
+
+其核心操作就是连接到Redis服务器，使用`config set`命令修改Redis持久化文件的名称和保存目录，再执行持久化操作，将秘钥内容写入服务器，完成免密登录。
+
+**漏洞出现的核心的原因**有以下几点：
+
+- Redis未设置密码
+- 利用了Redis的`config set`命令动态修改Redis配置
+- 使用了Root账号权限启动Redis
+
+**为了避免这样的漏洞，给出以下建议**：
+
+* Redis一定要设置密码
+
+* 禁止线上使用下面命令：`keys`、`flushall`、`flushdb`、`config set`等命令。可以利用`rename-command`禁用。
+
+  ![](./images/java/2024-12-3011_11_05.png)
+
+* bind：限制网卡，禁止外网网卡访问
+
+* 开启防火墙
+
+* 不要使用root账户启动Redis
+
+* 尽量不要使用默认的端口*（如：6379）*
+
+#### 9.3.4.内存配置
+
+当Redis内存不足时，可能导致Key频繁被删除、响应时间变长、`QPS`不稳定等问题。当内存使用率达到90%以上时就需要我们警惕，**并快速定位到内存占用的原因**。
+
+Redis的内存占用主要划分为以下几个部分：
+
+| 内存占用 |                             说明                             |
+| :------: | :----------------------------------------------------------: |
+| 数据内存 | 是Redis最主要的部分，存储Redis的键值信息。主要问题是`BigKey`问题、内存碎片问题。 |
+| 进程内存 | Redis主进程本身运行肯定需要占用内存，如代码、常量池等等；这部分内存大约几兆，**在大多数生产环境中与Redis数据占用的内存相比可以忽略。** |
+| 缓冲内存 | 一般包括客户端缓冲区、`AOF`缓冲区、复制缓冲区等。客户端缓冲区又包括输入缓冲区和输出缓冲区两种。这部分内存占用波动较大，不当使用`BigKey`，可能导致内存溢出。 |
+
+Redis提供了一些命令，可以查看到Redis目前的内存分配状态：
+
+* `info memory`：查看内存分配的情况
+
+* `memory xxx`：查看key的主要占用情况
+
+  * `memory state`：统计整个Redis内存占用情况
+
+  ```bash
+  1）"peak.allocated"//Redis进程自启动以来消耗内存的峰值。
+  2）（integer）794923123）"total.allocated"//Redis使用其分配器分配的总字节数，即当前的总内存使用量。
+  4）（integer）79307776
+  5）"startup.allocated"_//Redis启动时消耗的初始内存量。
+  6）（integer）45582592
+  7）"replication.backlog"//复制积压缓冲区的大小。
+  8）（integer）33554432
+  9）"clients.slaves"//主从复制中所有从节点的读写缓冲区大小。
+  10）（integer）17266
+  11）"clients.normal"//除从节点外，所有其他客户端的读写缓冲区大小。
+  12）（integer）119102
+  13）"aof.buffer"//AOF持久化使用的缓存和AOF重写时产生的缓存。
+  14）（integer）0
+  15）"db.0"//业务数据库的数量。
+  16）1）"overhead.hashtable.main"//当前数据库的hash链表开销内存总和，即元数据内存。
+          2）（integer）144
+          3）"overhead.hashtable.expires"//用于存储key的过期时间所消耗的内存。
+          4）（integer）e
+  17）"overhead.total"//数值=startup.allocated+replication.backlog+clients.slaves+clients.normal+aof.buffer+db.X.
+  18）（integer）79273616
+  19）"keys.count"//当前Redis实例的key总数
+  20）（integer）221）"keys.bytes-per-key"//当前Redis实例每个key的平均大小，计算公式
+  21）"keys.bytes-per-key"//当前Redis实例每个key的平均大小，计算公式：（total.allocated-startup.allocated）/keys.count.
+  22）（integer）16862592
+  23）"dataset.bytes"//纯业务数据占用的内存大小。
+  24）（integer）34160
+  25）"dataset.percentage"//纯业务数据占用的内存比例，计算公式：dataset.bytes*100/（total.allocated-startup.allocated）.
+  26）"0.1012892946600914"
+  27）"peak.percentage"//当前总内存与历史峰值的比例，计算公式：total.allocated*100/peak.allocated.
+  28）"99.767860412597656"
+  29）"fragmentation"//内存的碎片率。
+  30）"0.45836541056632996"
+  ```
+
+___
+
+**数据内存问题分析**
+
+主要是`BigKey`和内存碎片问题。其中，`BigKey`之前已经讲过，应该选择合适的数据结构避免出现`BigKey`，对已经出现的`BigKey`的数据进行拆分后删除即可。
+
+内存碎片的形成主要有以下几个原因：
+
+* **内存分配机制**：Redis使用的内存分配器（默认是`jemalloc`）**会按照固定大小来分配内存，而不是完全按照程序申请的内存大小来进行分配。**这可能导致分配的内存空间大于实际需要的空间，从而产生碎片‌。例如，当前key只需要10个字节，此时分配8肯定不够，那么他就会分配16个字节，多出来的6个字节就不能被使用。内存碎片对Redis的影响主要体现在内存利用率上。虽然内存碎片不会影响Redis的性能，但会降低内存的实际可用空间，从而可能导致Redis需要和外存进行数据交换（Swap），或者根据淘汰策略清理老数据，进而影响整体系统的性能。
+* **数据删除与修改**：当Redis删除或修改数据时，释放的内存空间并不一定能被立即重新利用。尤其是当这些空闲内存空间大小不一致时，就更可能导致内存碎片的出现。
+
+为了清理内存碎片，Redis 4.0版本后提供了自动内存碎片清理机制。此外，还可以通过重启Redis服务来清理内存碎片，但这种方法需要谨慎使用，因为重启期间Redis不可用，且如果未开启持久化机制，数据可能会丢失。
+
+**进程内存问题分析**
+
+Redis进程自身运行所需的内存消耗，这部分内存消耗通常非常小，通常可以忽略不计
+
+**缓冲区内存问题分析**
+
+缓冲区内存占用波动较大，特别是在高并发或大流量场景下，需要重点分析和管理。
+
+内存缓冲区常见的有三种：
+
+* **复制缓冲区**：这是一个可重用的固定大小缓冲区（`repl_backlog_buf`），用于支持主从复制功能。如果太小可能导致频繁的全量复制，影响性能。它存储复制过程中的数据缓冲区，避免全量复制。配置参数为`repl-backlog-size`，默认值为1 M。单个主节点配置一个复制积压缓冲区。
+
+* **`AOF`缓冲区**：如果启用了`AOF`（Append-Only File）持久化，则会有一个缓冲区用于存储写操作，以便在后台将其写入磁盘。`AOF`重写期间增量的写入命令也会保存在这个缓冲区中。此部分缓存占用大小取决于`AOF`重写时间及增量，无法设置容量上限*（没有上限）*
+
+* **客户端缓冲区**：Redis客户端主要分为**从客户端**、**订阅客户端**和**普通客户端**。从客户端连接主要用于主从复制，订阅客户端用于发布订阅功能，普通客户端则是通常的应用连接。每种类型的客户端都有不同的缓冲配置限制，以避免因缓冲区积压而导致的内存问题。
+
+  * 输入缓冲区：如存放命令等，TCP连接的输入缓冲区是不能设置的，最大允许空间为1 G
+
+  * 输出缓冲区：如存放查询结果等，TCP连接的输出缓冲区可以通过`client-output-buffer-limit`参数配置。
+
+    ![](./images/java/Snipaste_2025-10-27_20-14-19.png)
+
+    > **注意**：Redis客户端不属于Redis部分，是由不同的社区、公司或个人根据 Redis 通信协议独立开发的。
+
+    输出缓冲区的默认配置
+
+    ```properties
+    # Both the hard or the soft limit can be disabled by setting them to zero.
+    #普通客户端默认不受限制
+    client-output-buffer-limit normal 0 0 0 	
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+    ```
+
+  Redis提供查看客户端详情的命令：
+
+  * `info clients`：返回客户端总览，其中包括最大输入和输出缓冲区的大小、客户端连接数量
+  * `client list`：可以获取当前连接到Redis服务器的所有客户端信息，其中包括客户端的缓冲区使用情况。
+    * `qbuf`：查询缓冲区的长度（字节为单位），表示客户端发送到Redis但尚未被处理的命令所占用的缓冲区大小。如果`qbuf`很大，而同时`qbuf-free`（查询缓冲区剩余空间的长度）很小，说明客户端的输入缓冲区已经占用了很多内存，且空闲空间不足。
+    * `qbuf-free`：查询缓冲区剩余空间的长度（字节为单位），表示客户端输入缓冲区中剩余的可用空间大小。
+    * `obl`：输出缓冲区的长度（字节为单位），表示Redis为客户端分配的输出缓冲区中，已用于存储命令执行结果的部分所占用的空间大小。
+    * `oll`：输出列表包含的对象数量，当输出缓冲区没有剩余空间时，命令回复会以字符串对象的形式被入队到这个队列里。
+    * `omem`：输出缓冲区和输出列表占用的内存总量。
+
+### 9.4.集群还是主从
+
+集群虽然具备高可用特性，能实现自动故障恢复，但是如果使用不当，也会存在一些问题。
+
+**集群完整性问题**
+
+在Redis的默认配置中，如果发现任意一个插槽不可用，则整个集群都会停止对外服务![](./images/java/2024-12-3013_12_20.png)
+
+在开发中，其实最重要的是可用性，所以需要把如下配置修改成no，即有slot不能使用时，Redis集群的其他节点还是可以对外提供服务。
+
+**集群带宽问题**
+
+集群节点之间会不断的互相Ping来确定集群中其它节点的状态。每次Ping携带的信息至少包括：
+
+* 插槽信息
+* 集群状态信息
+
+集群中节点越多，集群状态信息数据量也越大，10个节点的相关信息可能达到1kb，此时每次集群互通需要的带宽会非常高。
+
+解决途径：
+
+* 避免大集群，集群节点数不要太多，最好少于1000，如果业务庞大，则建立多个集群。
+* 避免在单个物理机种运行太多Redis实例
+* 配置合适的`cluster-node-timeout`值*（客观下线超时时间）*
+
+**集群的其它问题**
+
+* 数据倾斜问题
+  * 在出现`BigKey`或者批处理中使用`hash_tag`策略时，会产生数据倾斜的问题。
+* 客户端性能问题
+* 命令的集群兼容性问题
+* lua和事务问题
+  * lua和事务都是要保证原子性问题，如果你的key不在一个节点，那么是无法保证lua的执行和事务的特性的，所以在集群模式是没有办法执行lua和事务的。
+
+> **到底是集群还是主从？**
+>
+> 单体Redis（主从Redis）已经能达到万级别的`QPS`，并且也具备很强的高可用特性。如果主从能满足业务需求的情况下，所以如果不是在万不得已的情况下，尽量不搭建Redis集群
+
+## 10.Redis事务
+
+**Redis事务**：一组命令的集合。事务中每条命令都会被序列化，执行过程中按顺序执行，不允许其他命令进行干扰。所有事务中的命令在加入时都没有被执行，直到提交时才会开始执行*（`Exec`）*一次性完成。
+
+#### 10.1.使用Redis事务
+
+Redis 可以通过 `MULTI`，`EXEC`，`DISCARD` 和 `WATCH` 等命令来实现事务(Transaction)功能。
+
+**操作过程**：开启事务（`multi`）---->命令入队---->执行事务（`exec`）
+
+```bash
+127.0.0.1:6379> multi # 开启事务
+OK
+127.0.0.1:6379> set k1 v1 # 命令入队
+QUEUED
+127.0.0.1:6379> set k2 v2 # ..
+QUEUED
+127.0.0.1:6379> get k1
+QUEUED
+127.0.0.1:6379> set k3 v3
+QUEUED
+127.0.0.1:6379> keys *
+QUEUED
+127.0.0.1:6379> exec # 事务执行
+1) OK
+2) OK
+3) "v1"
+4) OK
+5) 1) "k3"
+   2) "k2"
+   3) "k1"
+```
+
+___
+
+取消事务（`discurd`）
+
+```bash
+127.0.0.1:6379> multi
+OK
+127.0.0.1:6379> set k1 v1
+QUEUED
+127.0.0.1:6379> set k2 v2
+QUEUED
+127.0.0.1:6379> DISCARD # 放弃事务
+OK
+127.0.0.1:6379> EXEC 
+(error) ERR EXEC without MULTI # 当前未开启事务
+127.0.0.1:6379> get k1 # 被放弃事务中命令并未执行
+(nil)
+```
+
+通过`watch`命令监听指定的Key，当调用`exec`命令执行事务时，如果一个被`watch`命令监视的Key被其它客户端/Session修改的话，**整个事务都不会被执行**。
+
+```bash
+# 客户端 1
+127.0.0.1:6379> SET PROJECT "Hello，Redis!"
+OK
+127.0.0.1:6379> WATCH PROJECT
+OK
+127.0.0.1:6379> MULTI
+OK
+127.0.0.1:6379> SET PROJECT "Hello，Redis!"
+QUEUED
+ 
+# 客户端 2
+# 在客户端 1 执行 EXEC 命令提交事务之前修改 PROJECT 的值
+127.0.0.1:6379> SET PROJECT "Hi，Redis!"
+ 
+# 客户端 1
+# 修改失败，因为 PROJECT 的值在监听期间被客户端2修改了
+127.0.0.1:6379> EXEC
+(nil)
+127.0.0.1:6379> GET PROJECT
+"Hi，Redis!"
+```
+
+#### 10.2.Redis事务特性
+
+**Redis 事务的原子性是【执行层面】的原子性，而非【逻辑层面】或【回滚层面】的原子性。** 它保证了一个事务中的命令序列会被**连续、不被中断地执行**，但在执行过程中失败时，**不会自动回滚**。
+
+Redis是弱原子性，所有操作被连续执行，失败的命令不影响其它命令的执行，没有Rollback回滚机制；与关系型数据库中的原子性*（要么全部执行，要么全部不执行）*有一定差异。
+
+Redis是**有条件的**要么全部执行，要么全部不执行：
+
+* 在`exec`之前：如果在将命令放入队列的过程中，客户端断开了连接，或者命令入队时发生错误（例如命令语法错误，如 `SET key` 漏了 value），那么整个事务都会被丢弃，**所有命令都不会执行**。这是“全部不执行”。
+* 在`exec`之后：一旦开始执行，事务会一直运行到结束，即使其中某个命令执行时出错（例如对错误的数据类型进行操作，如用 `SADD` 操作一个字符串键）。**已经执行成功的命令不会被撤销。**
+
+___
+
+Redis 从 2.6 版本开始支持执行 Lua 脚本，它的功能和事务非常类似。我们可以利用 Lua 脚本来批量执行多条 Redis 命令，这些 Redis 命令会被提交到 Redis 服务器一次性执行完成，大幅减小了网络开销。一段 Lua 脚本可以视作一条命令执行，一段 Lua 脚本执行过程中不会有其他脚本或 Redis 命令同时执行，保证了操作不会被其他指令插入或打扰。
+
+不过，如果 Lua 脚本运行时出错并中途结束，出错之后的命令是不会被执行的。并且，出错之前执行的命令是无法被撤销的，无法实现类似关系型数据库执行失败可以回滚的那种原子性效果。因此， 严格来说的话，通过 Lua 脚本来批量执行 Redis 命令实际也是不完全满足原子性的。
+
+**如果想要让 Lua 脚本中的命令全部执行，必须保证语句语法和命令都是对的。**
+
+## 11.Redis原理
+
+**柔性数组**是 `C99` 标准中引入的特性，它允许在结构体的最后一个成员定义一个**长度不确定的数组**。
+
+```c
+struct my_struct {
+    int length;
+    int data[]; // 这就是柔性数组
+};
+```
+
+* 柔性数组必须是**结构体的最后一个成员**。
+* 数组的方括号 `[]` 内是**空的**，不指定长度。
+* 这个 `data` 数组**不占用结构体本身的大小**。
+
+优点：
+
+* 结构体和数组成员在内存中是**连续的**
+* 对于网络编程、磁盘I/O等场景，可以一次性读写整个结构，非常方便。
+* **一次分配，一次释放**，避免内存碎片。
+
+### 11.1.数据结构
+
+#### 11.1.1.动态字符串SDS
+
+Redis中保存的Key是字符串，value往往是字符串或者字符串的集合。可见**字符串是Redis中最常用的一种数据结构**。
+
+不过Redis没有直接使用C语言中的字符串，因为C语言字符串存在很多问题：
+
+```c
+// C语言，声明字符串
+char* s = "hello";
+// 本质是字符数组：{'h','e','l','l','o','\0'}
+```
+
+* 获取字符串的长度需要通过运算
+  * 由于C语言字符串没有内置的长度字段，获取字符串长度需要遍历整个字符数组，时间复杂度为O(N)。
+* 非二进制安全
+  * 二进制安全： 将一个字节序列纯粹当作**数据**来处理，不关心其中任何字节的特殊值（包括 '\0'）。例如：`memcpy`、`fwrite`。
+  * 非二进制安全： 将字节序列当作**字符串**来处理，其长度由遇到的**第一个 '\0'** 来决定。例如：`strlen`
+  * C语言字符串以空字符`'\0'`*(在计算机中表示为`0X00`十六进制）*结尾，因此不能包含空字符作为数据的一部分。这限制了字符串在保存二进制数据（如图片、音频、视频文件等）方面的能力。
+* 不可修改
+  * C语言定义的字符串不能对其进行修改
+
+Redis构建了一种新的字符串结构，成为**简单动态字符串**（Simple Dynamic String），简称**`SDS`**
+
+例如，我们执行命令
+
+```bash
+set name zyy
+```
+
+那么Redis将在底层**创建两个`SDS`**，其中一个是包含`name`的`SDS`，另一个是包含`zyy`的`SDS`。
+
+___
+
+Redis是C语言实现的，其中`SDS`是一个结构体，源码如下：
+
+```c
+struct __attribute__ ((__packed__)) sdshdr8{
+    uint8_t len; /*buf已保存的字符串字节数，不包含结束标示*/
+    uint8_t alloc; /*buf申请的总的字节数，不包含结束标示和Header本身*/
+    unsigned char flags; /*不同SDS的头类型，用来控制SDS的头大小*/
+    char buf[]; /*每个元素固定为1字节*/
+};
+```
+
+![](./images/Java/Snipaste_2025-10-28_20-43-07.png)
+
+* **`header`**：存储元信息，包括：
+
+  * `len`：字符串已使用的字节数。
+
+  * `alloc`：整个 `SDS` 分配的总字节数（不包括 Header 本身）
+
+  * `flags`：**直接决定**了该 `SDS` 字符串的 Header 大小和结构
+
+
+* **`buf`**：实际存储字符串内容的字节数组。**在其末尾总有一个 `\0` 字符**，以便兼容 C 字符串函数。
+
+例如，一个包含字符串“name”的sds结构：
+
+![](./images/java/2024-12-3017_37_11.png)
+
+___
+
+`SDS`之所以叫做动态字符串，是因为它具备动态扩容的能力，例如一个内容为"hi"的`SDS`：
+
+![](./images/java/2024-12-3017_51_27.png)
+
+假如我们要给`SDS`追加一段字符串“,Amy”，这里首先会**申请新内存空间**：
+
+>  **扩展后字符串长度**/**新字符串长度** = 当前字符串长度 + 新增字符串长度
+
+* 如果新字符串小于1MB，则**新内存空间**=**扩展后字符串长度**的两倍+1B*（'+1B'是存储结束标识`\0`花费的空间）*；
+
+* 如果新字符串大于1MB，则**新内存空间**=**扩展后字符串长度**+1MB+1B。
+
+以上动态扩容策略**称为内存预分配**。
+
+**执行流程**
+
+1. 计算新长度：`newlen` = `原len` + `新增len` = 2 + 4 = 6
+2. 检查容量：当前`alloc` = 2，6 > 2，需要扩容
+3. 应用策略：newlen = 6 < 1MB，所以重新分配一块更大的**连续内存** = Header + 2 * 6 + 1（+1 用于结尾的 `\0`）。
+4. 将原数据（"hi"）拷贝到新内存。
+5. 将新数据（",Amy"）追加到后面![](./images/java/2024-12-3017_52_36.png)
+
+*其中，`alloc`值不等于新申请的内存空间的值，因为`alloc`不包含`\0`。*
+
+___
+
+**优点**
+
+* 获取字符串长度的时间复杂度为O(1)。
+* 支持动态扩容
+* 减少内存分配次数*（内存预分配策略）*
+* 二进制安全*（无视`\0`的特殊含义）*
+
+___
+
+‌**当Redis中存储的字符串长度发生变化超出当前SDS（简单动态字符串）结构存储上限时**，则会**升级**到能够容纳新容量的、更大的 `SDS` 类型。
+
+`SDS`还采用了内存预分配和惰性空间释放策略来优化内存使用。
+
+- 当字符串需要扩容时，SDS会根据一定的规则（如小于1MB时按原长度两倍扩容，大于1MB时最多分配1MB空间）来分配新的内存空间‌。
+- 当字符串缩短时，SDS并不会立即回收多余的内存空间，而是将其记录下来，以便将来使用。这种惰性空间释放策略减少了内存分配和释放的次数，提高了性能‌。
+
+#### 11.1.2.IntSet
+
+`IntSet`是Redis中Set集合的一种实现方式，基于整数数组来实现，并且具备长度可变，有序等特征。它的设计目标非常简单：**当 Redis 集合（Set）中的所有元素都是整数时，就用 `IntSet`来存储，以节省大量内存。**
+
+`IntSet`本质是一个**有序的、不重复的**整数数组，结构如下：
+
+```c
+typedef struct intset {
+    uint32_t encoding;  // 编码方式，决定每个元素的字节数，支持存放16位、32位、64位整数
+    uint32_t length;    // 集合包含的元素数量
+    int8_t contents[];  // 整数数组，保存集合数据
+} intset;
+```
+
+* `encoding`决定了`contents`数组中每个元素用几个字节来存储，有三种可能的值
+
+  ```c
+  #define INTSET_ENC_INT16 (sizeof(int16_t)) //每个元素占 2 个字节。范围: -32,768 ～ 32,767
+  #define INTSET_ENC_INT32 (sizeof(int32_t))
+  #define INTSET_ENC_INT64 (sizeof(int64_t))
+  ```
+
+* `length`记录了集合中当前有多少个元素
+
+* `contents`是一个柔性数组，它是实际存储数据的地方，虽然声明为`int8_t`，但它真正的类型由`encoding`决定。
+
+  * 这里的`int8_t`不代表元素的大小，元素大小由`encoding`决定，这里的`int8_t`起到最小单位的作用，意味着我们可以以字节为单位来操作这块内存区
+
+___
+
+为了方便查找，Redis会将`IntSet`中所有的整数按照**升序**一次保存在`contents`数组中，假设元素为{5, 10, 20}，结构图：
+
+<img src="./images/java/Snipaste_2025-10-29_14-56-16.png" style="zoom:67%;" />
+
+现在，数组中每个数字都在`int16_t`的范围内，因此采用的编码方式是`INTSET_ENC_INT16`，每部分占用的字节大小为：
+
+* `encoding`：4字节（`int32_t`）
+* `length`：4字节（`int32_t`）
+* `contents`：2字节*3 = 6字节
+
+元素的起始位置可以通过计算获取：
+
+`startPtr + (sizeof(int16) * index)` ---> 数组起始位置 + 每个元素所占大小 * 该元素角标 = 该元素的物理起始位置
+
+___
+
+当contents数组中的元素大小超过2字节*（`int16_t`）*，应该如何解决？
+
+`IntSet`支持动态升级，当数组中的元素为{5, 10, 20}，采用的编码是`INTSET_ENC_INT16`，则每个整数占2字节：
+
+![](./images/java/image-20241230212623555-2024-12-3021_26_29.png)
+
+我们向该其中添加一个数字：50000，这个数字超出了`INTSET_ENC_INT16`的范围，`intset`会自动**升级**编码方式到合适的大小。 以当前案例来说流程如下：
+
+- 升级编码为`INTSET_ENC_INT32`, 每个整数占4字节，并按照新的编码方式及元素个数扩容数组
+- **倒序**依次将数组中的元素拷贝到扩容后的正确位置*（这样向后移动元素时不会覆盖还未处理的元素）*
+- 将待添加的元素放入数组末尾
+- 最后，将`inset`的`encoding`属性改为`INTSET_ENC_INT32`，将length属性改为4
+
+![](./images/Java/image-20241230213128501-2024-12-3021_31_30.png)
+
+##### 11.1.2.1.总结
+
+`Intset`可以看做是特殊的整数数组，具备一些特点：
+
+* Redis会确保`IntSet`中的元素**唯一、有序**
+* 具备类型升级机制，可以节省内存空间*（数据较小时使用`int8_t`）*
+* *（当插入一个新数据时）*底层采用**二分查找**方式来查询
+
+`IntSet`会受到数据量的影响，数据越多，查询性能会受到影响；且该类型是连续的内存空间，当数据量过多申请较大的连续空间比较困难，因此，**`IntSet`适合于数据量不多的情况下使用**。
+
+#### 11.1.3.Dict
+
+Redis是一个键值型（Key-Value Pair）的数据库，可以根据键实现快速的增删改查。而键与值的映射关系正是通过`Dict`来实现的。
+
+`Dict`由三部分组成，分别是：哈希表（`DictHashTable`）、哈希节点（`DictEntry`）、字典（`Dict`）。
+
+___
+
+**哈希节点（`DictEntry`）**
+
+包含一对`key:value`和指向下一个Entry的指针
+
+```c
+typedef struct dictEntry {
+    void *key; // 键
+    union {
+        void *val;
+        uint64_t u64;
+        int64_t s64;
+        double d;
+    } v; // 值，v可以是union中的任意一个值，但不能同时成立
+    // 下一个Entry的指针
+    struct dictEntry *next;
+} dictEntry;
+```
+
+**哈希表（`DictHashTable`）**
+
+```c
+typedef struct dictht {
+    // entry数组
+    // 数组中保存的是指向entry的指针
+    dictEntry **table;
+    // 哈希表大小
+    unsigned long size;
+    // 哈希表大小的掩码，总等于size - 1
+    unsigned long sizemask;
+    // entry个数
+    unsigned long used;
+} dictht;
+```
+
+哈希表实际上是一个数组，其中：
+
+* `dictEntry **table`是一个`DictEntry`类型的**数组指针**，而数组内保存的是指向一个个`DictEntry`对象的指针。
+* `size`：哈希表数组的大小。总是$2^n$，**默认为4**。
+* `sizemask`：哈希表大小的掩码，总等于size−1
+* `used`：哈希表数组中已存在的entry的个数
+
+**字典（`Dict`）**
+
+```c
+typedef struct dict {
+    dictType *type;         // dict类型，内置不同的hash函数
+    void *privdata;         // 私有数据，在做特殊hash运算时用
+    dictht ht[2];           // 一个Dict包含两个哈希表，其中一个是当前数据，另一个一般是空，rehash时使用
+    long rehashidx;         // rehash的进度/索引，-1表示未进行
+    int16_t pauserehash;    // rehash是否暂停，1则暂停，0则继续
+} dict;
+```
+
+其中：
+
+* `type`和`privdata`都是用来做哈希运算的
+
+* `dictht ht[2]`: 一个`Dict`包含两个哈希表，其中`ht[0]`保存当前数据；`ht[1]`一般是空，**rehash**时使用
+
+* `rehashidx`：rehash的进度，-1表示未进行。**`Dict`的rehash并不是一次性完成的，而是分多次、渐进式的完成。**rehash开始时设置为0，在每次执行新增、查询、修改、删除操作时，执行一次rehash，将`ht[0]` 中`rehashindex`对应下标的链表迁移到`ht[1]`，并且`rehashindex++`，直至`ht[0]`的所有数据都rehash到`ht[1]`
+
+* `pauserehash`：rehash是否暂停，1则暂停，0则继续
+
+  <img src="./images/java/image-20241230232051927-2024-12-3023_20_54.png" style="zoom:67%;" />
+
+___
+
+当我们向`Dict`添加键值对时，Redis首先根据key计算出Hash值（h），然后利用`h & sizemask`*（与运算，相当于`h % size`）*来计算元素应该存储到数组中的哪个索引位置。
+
+> 由于size总是$2^n$，则它的余数就是二进制中1之后的位数组成的数字，
+>
+> *（如，`size` = 8的二进制是0000 1000，1之后的位是3个0； `sizemask` = 0000 0111）*
+>
+> 而`sizemask` = `size` - 1，其目的是1之后的位数全部变成1，再与`h`进行与操作，得到就是`size`中1之后的位数组成的数字。从而达到取余操作，且位运算比余运算速度更快。
+
+我们存储`k1:v1`，假设k1的哈希值h = 1，则1&3=1，因此`k1:v1`要存储到数组角标1位置。
+
+![](./images/java/Snipaste_2025-10-29_17-33-58.png)
+
+此时，再次插入的新的键值`k2=v2`经过hash运算，也要存储到数组下标1的位置，会产生**哈希冲突**。Redis解决冲突的方式是**头插法**，在队首添加新节点。原因：每次在队尾添加新节点，则需要遍历整个链表，若该角标保存的链表较长，则浪费时间。
+
+![](./images/java/Snipaste_2025-10-29_19-50-24.png)
+
+##### 11.1.3.1.Dict的扩容
+
+`Dict`中的`HashTable`就是数组结合单向链表的实现，当集合中元素较多时，必然导致哈希冲突增多，链表过长，则查询效率会大大降低。
+
+`Dict`在**每次新增键值对时**都会检查**负载因子**（`LoadFactor = used/size`），满足以下两种情况时会触发**哈希表扩容**：
+
+* 哈希表的`LoadFactor`>=1，并且服务器没有执行`BGSAVE`或者`BGREWRITEAOF`等后台进程。
+* 哈希表的`LoadFactor`>5
+
+![](./images/java/Snipaste_2025-10-29_20-23-14.png)
+
+*参数`dict_can_resize`表示服务器没有执行`BGSAVE`或者`BGREWRITEAOF`等后台进程。*
+
+##### 11.1.3.2.Dict的收缩
+
+`Dict`在**每次删除元素时**，也会对负载因子做检查，当`LoadFactor`<0.1时，会做哈希表收缩：<img src="./images/java/image-20241231000236670-2024-12-3100_02_39.png" style="zoom:80%;" />
+
+***`Dict`的初始化、扩容和收缩都会调用`dictExpand`方法***
+
+##### 11.1.3.3.Dict的rehash
+
+不管是扩容还是收缩，必定会创建新的哈希表，导致哈希表的`size`和`sizemask`变化，而key的查询与`sizemask`有关。因此**必须对哈希表中的每一个key重新计算索引，插入新的哈希表，这个过程称为rehash**。但是rehash是在执行增删操作时判断是否要执行rehash，而这些操作是在Redis的主进程中进行的，若一次迁移太多的entry会导致主进程阻塞，直至完成rehash后才能处理新命令。
+
+因此，`Dict`的rehash并不是一次性完成的。`Dict`的rehash是**分多次、渐进式**的完成的，因此称为**渐进式rehash**。流程如下：
+
+1. 计算新hash表的`size`，值取决于当前要做的是扩容还是收缩：
+   - 如果是扩容，则新size为第一个大于等于`dict.ht[0].used` + 1的 $2^n$
+   - 如果是收缩，则新size为第一个大于等于`dict.ht[0].used`的 $2^n$（不得小于4）
+2. 按照新的size申请内存空间，创建`dictht`（hash表），并赋值给`dict.ht[1]`。
+3. 设置`dict.rehashidx = 0`，标示开始`rehash`，用来记录旧表`dict.ht[0]`数据迁移的位置
+4. 每次执行新增、查询、修改、删除操作时，都检查一下`dict.rehashidx`是否大于-1，如果是则将`dict.ht[0].table[rehashidx]`的entry链表rehash到`dict.ht[1]`，并且将`rehashidx++`。直至`dict.ht[0]`的所有数据都rehash到`dict.ht[1]`
+   * 即每次执行新增、查询、修改、删除操作时，都将`ht[0]`中`rehashindex`所指下标的链表迁移到`ht[1]`，每次只迁移一条链表的数据，并且`rehashindex++`，直至将`ht[0]`中的数据都迁移到`ht[1]`
+5. 将`dict.ht[1]`赋值给`dict.ht[0]`，给`dict.ht[1]`初始化为空哈希表，释放原来的`dict.ht[0]`的内存。
+6. 将`rehashidx`赋值为-1，代表rehash结束。
+7. 在rehash过程中，新增操作，则直接写入`ht[1]`，查询、修改和删除则会在`dict.ht[0]`和`dict.ht[1]`依次查找并执行。这样可以确保`ht[0]`的数据只减不增，随着rehash最终为空。
+
+*`dict.ht[1]`的作用是临时存放新的hash表，用于完成旧数据向新hash表迁移的任务*
+
+##### 11.1.3.4.总结
+
+`Dict`的结构：
+
+* 类似Java的`HashTable`，底层是数组加链表来解决Hash冲突。
+* `Dict`包含两个哈希表，`ht[0]`平常用来保存hash表地址，`ht[1]`用来rehash。
+
+`Dict`的伸缩：
+
+* 当`LoadFactor`>5或者`LoadFactor`>1并且没有子进程任务时，`Dic`扩容
+* 当`LoadFactor`<0.1时，`Dict`收缩
+* 扩容大小为第一个大于等于`used + 1`的 $2^n$
+* 收缩大小为第一个大于等于`used`的 $2^n$
+* `Dict`采用渐进式rehash，每次访问`Dict`时执行一次rehash
+* rehash时`ht[0]`只减不增，新增操作只在`ht[1]`执行，其它操作在两个hash表都执行
+
+#### 11.1.4.ZipList 
+
+
+
+#### 11.1.5.QuickList
+
+
+
+#### 11.1.6.SkipList
+
+
+
+#### 11.1.7.RedisObject
+
+
+
+#### 11.1.8.五种数据结构
+
+
+
+### 11.2.网络模型
+
+
+
+### 11.3.通信协议
+
+
+
+### 11.4.内存策略
+
+
+
+
 
 
 
