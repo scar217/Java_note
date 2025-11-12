@@ -727,6 +727,8 @@ public class ThreadDemo {
 
 # Nginx
 
+推荐笔记：[nginx学习，看这一篇就够了](https://blog.csdn.net/qq_40036754/article/details/102463099)
+
 ## 1.Nginx安装和配置
 
 **通过压缩包解压编译安装**
